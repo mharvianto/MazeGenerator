@@ -7,7 +7,8 @@
 		body,html{padding: 0; margin: 0; background: #000000; overflow: hidden; height: 100%;}
 		*{font-family: 'Roboto', sans-serif;}
 		#canvas{margin: 0 auto; width: 100%;}
-		#navbar{height: 20px; padding: 10px; background: #ffffff;}
+		#navbar{padding: 10px; background: #ffffff;}
+		input[type="range"]{vertical-align: middle;}
 	</style>
 </head>
 <body>
@@ -20,7 +21,7 @@
 				<option value="2" selected="selected">Prim's</option>
 			</select>
 		</label> &nbsp;
-		<label>Speed <input type="range" min="1" max="100" step="1" value="10" list="tickmarks" style="vertical-align: -5px" id="speedtxt">
+		<label>Speed <input type="range" min="1" max="100" step="1" value="10" list="tickmarks" id="speedtxt">
 			<datalist id="tickmarks"><option value="1"><option value="100"></datalist>
 		</label> &nbsp;
 		<input type="button" value="Reset" id="resetbtn"> &nbsp;

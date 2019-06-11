@@ -15,7 +15,8 @@
                 data[b] = c;
             },
             compare = options.compare || ((a, b) => a < b);
-        return{get: (a) => data[a] || data,
+        return {
+			get: (a) => data[a] || data,
 			push: function(){
 				Array.from(arguments).forEach((a) => {
 					let n = data.push(a)-1;
@@ -50,7 +51,8 @@
 	}
 	function Queue(){
         let data = [];
-        return {get: (a) => data[a] || data,
+        return {
+			get: (a) => data[a] || data,
 			empty: () => !data.length,
 			push: (a) => data.push(a),
 			pop: () => data.shift(),
@@ -58,7 +60,8 @@
 	}
 	function Stack(){
         let data = [];
-        return {get: (a) => data[a] || data,
+        return {
+			get: (a) => data[a] || data,
 			empty: () => !data.length,
 			push: (a) => data.push(a),
 			pop: () => data.pop(),
@@ -92,7 +95,7 @@
 				moves,
 				currMouse,
 				opt = {compare:(a,b) => a.w < b.w},
-				rand = () => Math.floor(Math.random()*10),
+				rand = () => Math.floor(Math.random() * 10),
 				isBorder = (n) => n.x > 0 && n.y > 0 && n.x < width-1 && n.y < height-1,
 				draw = function(node, options){
 					options = options || {};
@@ -105,12 +108,12 @@
 					let n = {x:node.x, y:node.y, fx:(node.fx||node.x), fy:(node.fy||node.y)};
 					if(!map[n.x][n.y]){
 						map[n.x][n.y] = map[n.fx][n.fy] = 1;
-                        let moves = [], temp;
+						let moves = [], temp;
                         if(n.x-2 > 0) moves.push({w:rand(), x:n.x-2, y:n.y, fx:n.x-1, fy:n.y});
 						if(n.y-2 > 0) moves.push({w:rand(), x:n.x, y:n.y-2, fx:n.x, fy:n.y-1});
 						if(n.x+2 < width-1) moves.push({w:rand(), x:n.x+2, y:n.y, fx:n.x+1, fy:n.y});
 						if(n.y+2 < height-1) moves.push({w:rand(), x:n.x, y:n.y+2, fx:n.x, fy:n.y+1});
-						moves.sort((a, b) => a && b && a.w < b.w);
+						moves.sort((a, b) => a.w - b.w);
 						while(temp = moves.pop()){
 							if(pq.get().filter(({x,y})=>(x === temp.x && y === temp.y)).length < 1 && !map[temp.x][temp.y])
 								pq.push({w:rand(), x:temp.x, y:temp.y, fx:temp.fx, fy:temp.fy});
@@ -129,7 +132,7 @@
 						}
 					}
 					// (cycle && cycle.forEach(({x,y})=>{draw({x, y}, {color:'red'});}));
-					(cycle && cycle.forEach(({fx,fy})=>{draw({x:fx, y:fy}, {color:'orange'})}));
+					(cycle && cycle.forEach(({fx, fy}) => {draw({x:fx, y:fy}, {color: 'orange'})}));
 					(node && draw(node, {color:'blue', width:size-Math.floor(size/5)}));
 				},
 				memset = function(n, m, v){
@@ -160,7 +163,7 @@
 							moves.push({w:rand(), x:t.x+2, y:t.y, fx:t.x+1, fy:t.y});
 							moves.push({w:rand(), x:t.x, y:t.y-2, fx:t.x, fy:t.y-1});
 							moves.push({w:rand(), x:t.x, y:t.y+2, fx:t.x, fy:t.y+1});
-							moves.sort((a, b) => a && b && a.w < b.w);
+							moves.sort((a, b) => a && b && a.w - b.w);
 							while(hole = moves.shift()){
 								if(hole.x>0 && hole.y>0 && hole.x<width-1 && hole.y<height-1 && !map[hole.fx][hole.fy] /*&&
 									!((map[hole.fx-2] && map[hole.fx-2][hole.fy]) || map[hole.fx][hole.fy-2] || 
@@ -308,7 +311,7 @@
 				speed = sp.value || 1;
 				pause = false;
 				pb.value = 'Pause';
-				pq = (al.value === 0 ? new Queue():(al.value === 1 ? new Stack() : new PriorityQueue(opt)));
+				pq = (al.value === '0' ? new Queue():(al.value === '1' ? new Stack() : new PriorityQueue(opt)));
 				x = Math.floor(Math.random()*(width-2)/2)*2+1;
 				y = Math.floor(Math.random()*(height-2)/2)*2+1;
 				map = memset(width, height);

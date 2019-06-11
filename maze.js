@@ -113,7 +113,7 @@
 						if(n.y-2 > 0) moves.push({w:rand(), x:n.x, y:n.y-2, fx:n.x, fy:n.y-1});
 						if(n.x+2 < width-1) moves.push({w:rand(), x:n.x+2, y:n.y, fx:n.x+1, fy:n.y});
 						if(n.y+2 < height-1) moves.push({w:rand(), x:n.x, y:n.y+2, fx:n.x, fy:n.y+1});
-						moves.sort((a, b) => a.w - b.w);
+						moves.sort((a, b) => a && b && a.w - b.w);
 						while(temp = moves.pop()){
 							if(pq.get().filter(({x,y})=>(x === temp.x && y === temp.y)).length < 1 && !map[temp.x][temp.y])
 								pq.push({w:rand(), x:temp.x, y:temp.y, fx:temp.fx, fy:temp.fy});

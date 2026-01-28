@@ -1,16 +1,40 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<title>Maze</title>
 	<style type="text/css">
 		@import url('https://fonts.googleapis.com/css?family=Roboto');
-		body,html{padding: 0; margin: 0; background: #000000; overflow: hidden; height: 100%;}
-		*{font-family: 'Roboto', sans-serif;}
-		#canvas{margin: 0 auto; width: 100%;}
-		#navbar{padding: 10px; background: #ffffff;}
-		input[type="range"]{vertical-align: middle;}
+
+		body,
+		html {
+			padding: 0;
+			margin: 0;
+			background: #000000;
+			overflow: hidden;
+			height: 100%;
+		}
+
+		* {
+			font-family: 'Roboto', sans-serif;
+		}
+
+		#canvas {
+			margin: 0 auto;
+			width: 100%;
+		}
+
+		#navbar {
+			padding: 10px;
+			background: #ffffff;
+		}
+
+		input[type="range"] {
+			vertical-align: middle;
+		}
 	</style>
 </head>
+
 <body>
 	<div id="navbar">
 		<label>Size <input type="number" min="5" max="40" step="5" value="20" id="sizetxt"></label> &nbsp;
@@ -22,13 +46,17 @@
 			</select>
 		</label> &nbsp;
 		<label>Speed <input type="range" min="1" max="100" step="1" value="10" list="tickmarks" id="speedtxt">
-			<datalist id="tickmarks"><option value="1"><option value="100"></datalist>
+			<datalist id="tickmarks">
+				<option value="1">
+				<option value="100">
+			</datalist>
 		</label> &nbsp;
 		<input type="button" value="Reset" id="resetbtn"> &nbsp;
 		<input type="button" value="Pause" id="pausebtn">
 	</div>
 	<canvas id="canvas" width="500" height="400"></canvas>
 	<!-- <script type="text/javascript" src="build/maze-min.js"></script> -->
-	<script type="text/javascript" src="maze.js"></script>
+	<script type="module" src="/src/maze.js"></script>
 </body>
+
 </html>

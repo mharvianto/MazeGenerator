@@ -103,13 +103,30 @@ interface QueueInterface<T> {
 	const c = $('canvas') as HTMLCanvasElement;
 	const ctx = c.getContext('2d')!;
 	let pause = false;
-	let interval: number;
-	let speed: number;
+	let interval = 0;
+	let delay: number;
+	let stepsPerTick: number;
 	const si = $('#sizetxt') as HTMLInputElement;
 	const al = $('#algotxt') as HTMLSelectElement;
 	const sp = $('#speedtxt') as HTMLInputElement;
 	const rb = $('#resetbtn') as HTMLButtonElement;
 	const pb = $('#pausebtn') as HTMLButtonElement;
+
+	// Slider 1..100 maps exponentially to 2..2000 steps per second. Timers can't
+	// fire much faster than ~60/s reliably, so higher rates run several steps per tick.
+	const updateSpeed = function (): void {
+		const rate = 2 * Math.pow(1000, (parseInt(sp.value) - 1) / 99);
+		delay = rate <= 60 ? 1000 / rate : 1000 / 60;
+		stepsPerTick = rate <= 60 ? 1 : Math.round(rate / 60);
+	};
+
+	// A step may stop this timer or start the next phase's; stop looping once it does.
+	const run = function (step: () => void): void {
+		clearInterval(interval);
+		const id = (interval = window.setInterval(() => {
+			for (let i = 0; i < stepsPerTick && interval === id; i++) step();
+		}, delay));
+	};
 
 	interface DrawOptions {
 		color?: string;
@@ -309,7 +326,7 @@ interface QueueInterface<T> {
 			visited = memset(width, height);
 			qq = [];
 			qq.push({ x, y } as Node);
-			interval = window.setInterval(obj.floodFillStep, speed);
+			run(obj.floodFillStep);
 		};
 
 		const dijkstra = function (node: Node): void {
@@ -365,9 +382,8 @@ interface QueueInterface<T> {
 		const mouseClick = function (e: MouseEvent): void {
 			const pos = mousePosition(e);
 			if (isBorder(pos) && !(pos.x === x && pos.y === y) && map[pos.x][pos.y]) {
-				if (obj.st === 2) clearInterval(interval);
 				moves = pathMove(pos);
-				interval = window.setInterval(obj.moveNode, speed);
+				run(obj.moveNode);
 			}
 		};
 
@@ -442,7 +458,7 @@ interface QueueInterface<T> {
 			size = parseInt(si.value);
 			width = Math.floor(c.width / size);
 			height = Math.floor(c.height / size);
-			speed = parseInt(sp.value) || 1;
+			updateSpeed();
 			pause = false;
 			pb.value = 'Pause';
 			pq =
@@ -461,12 +477,13 @@ interface QueueInterface<T> {
 			kruskal = al.value === '3';
 			if (kruskal) initKruskal();
 			else addMaze({ x: x, y: y } as Node);
-			interval = window.setInterval(obj.renderView, speed);
+			run(obj.renderView);
 			return obj;
 		};
 
 		obj.stop = (): MazeObject => {
 			clearInterval(interval);
+			interval = 0;
 			return obj;
 		};
 
@@ -492,19 +509,9 @@ interface QueueInterface<T> {
 		pb.value = pb.value === 'Pause' ? 'Play' : 'Pause';
 	});
 
-	sp.addEventListener('change', function () {
-		speed = parseInt(sp.value);
-		mazeInstance.stop();
-		switch (mazeInstance.st) {
-			case 0:
-				interval = window.setInterval(mazeInstance.renderView, speed);
-				break;
-			case 1:
-				interval = window.setInterval(mazeInstance.floodFillStep, speed);
-				break;
-			case 2:
-				interval = window.setInterval(mazeInstance.moveNode, speed);
-				break;
-		}
+	sp.addEventListener('input', function () {
+		updateSpeed();
+		if (!interval) return;
+		run([mazeInstance.renderView, mazeInstance.floodFillStep, mazeInstance.moveNode][mazeInstance.st]);
 	});
 })();

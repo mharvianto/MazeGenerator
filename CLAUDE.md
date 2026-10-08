@@ -23,11 +23,11 @@ A single-page canvas app: `index.html` holds the UI controls (size, algorithm, s
 
 **Generation is one algorithm with interchangeable frontiers.** `addMaze` pushes randomly weighted neighbors into `pq`, and `start()` picks the container from the dropdown: `Queue` (BFS), `Stack` (DFS) or `PriorityQueue` on random weights (Prim's). All three share the `QueueInterface` shape. Kruskal's (`kruskal` flag) is the exception: `initKruskal` fills a `PriorityQueue` with every wall at random weights, and `renderView` calls `joinKruskal` (union-find via `parent`/`find`) instead of `addMaze`. In that mode `drawMaze` doesn't draw the frontier in red.
 
-**Three-phase state machine driven by `setInterval`**, tracked in `obj.st`:
+**Three-phase state machine driven by `run(step)`**, tracked in `obj.st`. `run` wraps `setInterval`, and `updateSpeed` maps the slider to `delay` plus `stepsPerTick`, so fast speeds run several steps per tick:
 0. `renderView`: pop the frontier and carve until it is empty
 1. `floodFillStep`: walk the maze and, at dead ends (exactly one open neighbor), knock out one extra wall to create loops (drawn orange via `cycle`)
 2. Interactive: `dijkstra` computes `distance[][]` from the player's position (blue). Hovering draws the shortest path via `pathMove`, which descends the distance gradient. Clicking animates the player along it with `moveNode`.
 
-Each phase stops its own interval, increments `st` and starts the next one. The speed slider handler restarts the interval for the current `st`, so a new phase must be added there as well. Pause is a global flag that every step function checks. Window resize triggers a full reset.
+Each phase stops its own interval, increments `st` and starts the next one. Inside a tick, `run` stops looping as soon as `interval` changes. `obj.stop()` resets it to 0, and the next phase's `run` replaces it. The speed slider handler restarts the step function indexed by `st`, so a new phase must be added there as well. Pause is a global flag that every step function checks. Window resize triggers a full reset.
 
 Rendering is immediate-mode: `drawMaze` clears and redraws the whole grid every tick.

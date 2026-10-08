@@ -1,6 +1,6 @@
 # MazeGenerator
 
-Cara menggunakan dan penjelasan algoritmanya ada di [PANDUAN.md](PANDUAN.md).
+Cara menggunakan dan penjelasan algoritmanya ada di [GUIDE.md](GUIDE.md) (bahasa Inggris).
 
 ## Jalankan tanpa install apa pun
 

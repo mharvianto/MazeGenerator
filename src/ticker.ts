@@ -1,7 +1,7 @@
 /**
  * Runs a step function on a timer. The speed slider (1..100) maps exponentially to
  * 2..2000 steps per second. Timers can't fire much faster than ~60/s reliably, so
- * higher rates run several steps per tick.
+ * higher rates run several steps per tick, then `render` draws once per tick.
  */
 export class Ticker {
 	paused = false;
@@ -9,6 +9,8 @@ export class Ticker {
 	private step?: () => void;
 	private delay = 1000 / 60;
 	private stepsPerTick = 1;
+
+	constructor(private readonly render: () => void) {}
 
 	setSpeed(slider: number): void {
 		const rate = 2 * Math.pow(1000, (slider - 1) / 99);
@@ -22,9 +24,9 @@ export class Ticker {
 		this.step = step;
 		// A step may stop this timer or start another one; stop looping once it does.
 		const id = (this.id = window.setInterval(() => {
-			for (let i = 0; i < this.stepsPerTick && this.id === id; i++) {
-				if (!this.paused) step();
-			}
+			if (this.paused) return;
+			for (let i = 0; i < this.stepsPerTick && this.id === id; i++) step();
+			this.render();
 		}, this.delay));
 	}
 

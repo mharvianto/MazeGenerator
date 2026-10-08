@@ -35,7 +35,7 @@ type Phase = 'generate' | 'bridge' | 'play';
 
 class App {
 	private readonly renderer = new Renderer(canvas);
-	private readonly ticker = new Ticker();
+	private readonly ticker = new Ticker(() => this.redraw());
 	private phase: Phase = 'generate';
 	private grid!: Grid;
 	private weights!: Weights;
@@ -78,6 +78,7 @@ class App {
 		this.bridgePercent = parseInt(bridgeInput.value);
 		this.generator = createGenerator(algorithmSelect.value, this.grid, this.weights, this.player);
 		this.bridges = undefined;
+		this.highlight = undefined;
 		this.hover = undefined;
 		this.route = [];
 		this.phase = 'generate';
@@ -100,7 +101,10 @@ class App {
 
 	private generateStep = (): void => {
 		const cell = this.generator.step();
-		if (cell) return this.drawMaze(cell);
+		if (cell) {
+			this.highlight = cell;
+			return;
+		}
 		this.ticker.stop();
 		if (this.bridgePercent > 0) {
 			this.phase = 'bridge';
@@ -111,7 +115,10 @@ class App {
 
 	private bridgeStep = (): void => {
 		const cell = this.bridges!.step();
-		if (cell) return this.drawMaze(cell);
+		if (cell) {
+			this.highlight = cell;
+			return;
+		}
 		this.ticker.stop();
 		this.enterPlay();
 	};
@@ -121,20 +128,17 @@ class App {
 		if (!next) return this.ticker.stop();
 		this.player = next;
 		this.dist = bfs(this.grid, this.player);
-		this.drawPlay();
 	};
 
 	private enterPlay(): void {
 		this.phase = 'play';
 		this.dist = bfs(this.grid, this.player);
-		this.drawPlay();
 	}
 
 	private drawMaze(highlight?: Point): void {
 		const { renderer } = this;
 		const ordered = orderInput.checked;
 		const frontier = this.generator.frontier(ordered);
-		this.highlight = highlight;
 		renderer.clear();
 		frontier.forEach((edge, i) => {
 			const color = ordered ? rankColor(i, frontier.length) : COLORS.frontier;

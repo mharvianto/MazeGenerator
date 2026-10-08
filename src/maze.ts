@@ -121,6 +121,7 @@ interface QueueInterface<T> {
 	const rb = $('#resetbtn') as HTMLButtonElement;
 	const pb = $('#pausebtn') as HTMLButtonElement;
 	const rd = $('#randomtxt') as HTMLInputElement;
+	const br = $('#bridgetxt') as HTMLInputElement;
 
 	// Slider 1..100 maps exponentially to 2..2000 steps per second. Timers can't
 	// fire much faster than ~60/s reliably, so higher rates run several steps per tick.
@@ -183,6 +184,7 @@ interface QueueInterface<T> {
 		let currMouse: Node | undefined;
 		let kruskal: boolean;
 		let random: boolean;
+		let bridge: boolean;
 		let seq: number;
 		let parent: number[];
 		const opt: PriorityQueueOptions = { compare: (a: WeightedNode, b: WeightedNode) => a.w < b.w };
@@ -462,7 +464,12 @@ interface QueueInterface<T> {
 			} else {
 				obj.stop();
 				obj.st++;
-				floodFill();
+				// The flood-fill phase only exists to add bridges; skip it when they're off.
+				if (bridge) floodFill();
+				else {
+					obj.st++;
+					mouseListener();
+				}
 			}
 		};
 
@@ -489,6 +496,7 @@ interface QueueInterface<T> {
 			c.removeEventListener('mousemove', mouseMove);
 			c.removeEventListener('mousedown', mouseClick);
 			random = rd.checked;
+			bridge = br.checked;
 			seq = 0;
 			kruskal = al.value === '3';
 			if (kruskal) initKruskal();

@@ -4,16 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm run dev` — Vite dev server on `0.0.0.0:5173`
-- `npm run build`: type-check (`tsc --noEmit`), then production build to `dist/`
-- `npm run preview` — serve the built `dist/`
-- `npx tsc --noEmit`: type-check only (Vite itself strips types without checking)
+- `npm run dev`: Vite dev server on `0.0.0.0:5173`
+- `npm run build`: type-check (`tsc --noEmit`, which also covers `tests/`), then production build to `dist/`
+- `npm run preview`: serve the built `dist/`
+- `npm test`: Playwright suite in Chromium. It starts its own Vite server on port 5174.
+- `npx playwright test tests/generation.spec.ts` runs one file, and `npx playwright test -g "dfs builds"` runs tests matching a title.
+- `npx playwright test --update-snapshots`: rewrite the maze snapshots, only when a change is meant to alter which maze a seed produces.
 
-There is no test suite or linter. To check UI changes in a real browser, use `playwright` (a devDependency) as a library from a scratch script against `npm run dev`. Chromium lives outside the repo, so after a container rebuild run `npx playwright install --with-deps chromium` again.
+There is no linter. Chromium lives outside the repo, so after a container rebuild run `npx playwright install --with-deps chromium` again.
+
+## Tests
+
+`tests/helpers.ts` drives the app purely through the DOM and canvas pixels, with no test hooks in the app:
+
+- `generate()` sets the controls, seeds `Math.random` and clicks Reset in one `page.evaluate`. A separate seed call would race the maze running from page load.
+- `readMaze()` turns the canvas into ASCII (`#` wall, `+` bridge, `@` player). It reads square centers, so call it while no hover path is drawn.
+- `analyze()` checks graph facts: spanning tree (`passages === cells - 1`, connected) and dead ends.
+
+`generation.spec.ts` runs at a 600px-wide viewport, so the phone navbar has a font-independent height and the grid size, and with it the text snapshots in `tests/__snapshots__/`, is the same on every machine. Those snapshots pin the exact generation order, so a refactor that changes any `Math.random`/`Weights` call order fails them.
 
 ## Deployment
 
-Pushing to `master` triggers `.github/workflows/deploy-pages.yml`, which runs `npm ci && npm run build` on Node 24 and publishes `dist/` to GitHub Pages at https://mharvianto.github.io/MazeGenerator/. `vite.config.ts` sets `base: './'` so asset paths work under the repo subpath.
+Pushing to `master` triggers `.github/workflows/deploy-pages.yml`, which runs `npm ci`, `npm test` and `npm run build` on Node 24 and publishes `dist/` to GitHub Pages at https://mharvianto.github.io/MazeGenerator/. A failing test blocks the deploy, and the HTML report is uploaded as an artifact. Pull requests run `.github/workflows/test.yml`. `vite.config.ts` sets `base: './'` so asset paths work under the repo subpath.
 
 ## Architecture
 
@@ -29,4 +41,4 @@ A single-page canvas app. `index.html` holds the UI controls, and `index.html` l
 - `ticker.ts`: `Ticker` runs one step function on `setInterval`. It maps the speed slider to a delay plus steps per tick, restarts itself on speed changes, and skips steps while paused.
 - `maze.ts`: `App` wires the DOM and runs the phases `generate`, then `bridge` (skipped at 0%), then `play`. Each step function stops the ticker and starts the next phase when its source runs dry. Arrow keys/WASD call `App.step()`, which moves the player one cell (skipped while a form control has focus). Input uses pointer events: a mouse previews on hover and walks on click, while touch previews on drag and walks on lift. On narrow screens (≤760px) the navbar `.controls` become a drop-down panel. Resize only resets the maze on width changes or large height changes, so mobile URL bars and keyboards don't wipe it. Step functions only update state. `Ticker` calls `App.redraw()` once per tick, after all of that tick's steps, and `drawMaze`/`drawPlay` redraw the whole scene.
 
-Generation order must stay exactly as is: every `Math.random`/`Weights` call, in order, determines the maze. A refactor can be checked by seeding `Math.random` in Playwright and pixel-comparing the final canvas against the old build. Seed and click Reset in one `page.evaluate`, because the maze running from page load keeps consuming random numbers.
+Generation order must stay exactly as is: every `Math.random`/`Weights` call, in order, determines the maze. The generation snapshots enforce this.

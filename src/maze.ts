@@ -23,6 +23,8 @@ const orderInput = $<HTMLInputElement>('#ordertxt');
 const speedInput = $<HTMLInputElement>('#speedtxt');
 const resetButton = $<HTMLInputElement>('#resetbtn');
 const pauseButton = $<HTMLInputElement>('#pausebtn');
+const menuButton = $<HTMLButtonElement>('#menubtn');
+const backdrop = $('#backdrop');
 
 /**
  * Generate: carve the maze one step at a time.
@@ -46,23 +48,25 @@ class App {
 	/** Distances from the player, recomputed whenever the player moves. */
 	private dist!: Int32Array;
 	private hover?: Point;
-	private lastMouse?: Point;
+	private lastPointer?: Point;
 	/** Squares left to walk, in order. */
 	private route: Point[] = [];
 
 	constructor() {
-		canvas.addEventListener('mousemove', this.onMouseMove);
-		canvas.addEventListener('mousedown', this.onMouseDown);
-		canvas.addEventListener('mouseleave', this.onMouseLeave);
+		canvas.addEventListener('pointermove', this.onPointerMove);
+		canvas.addEventListener('pointerdown', this.onPointerDown);
+		canvas.addEventListener('pointerup', this.onPointerUp);
+		canvas.addEventListener('pointerleave', this.onPointerLeave);
 	}
 
 	reset(): void {
 		this.ticker.stop();
-		canvas.width = window.innerWidth;
-		canvas.height = window.innerHeight - navbar.offsetHeight;
-		const size = parseInt(sizeInput.value);
-		this.renderer.size = size;
-		this.grid = new Grid(Math.floor(canvas.width / size), Math.floor(canvas.height / size));
+		const { width, height } = this.renderer.resize(
+			window.innerWidth,
+			window.innerHeight - navbar.offsetHeight,
+			parseInt(sizeInput.value)
+		);
+		this.grid = new Grid(width, height);
 		this.ticker.setSpeed(parseInt(speedInput.value));
 		this.ticker.paused = false;
 		pauseButton.value = 'Pause';
@@ -149,51 +153,84 @@ class App {
 		}
 	}
 
-	private mousePosition(e: MouseEvent): Point {
-		const rect = canvas.getBoundingClientRect();
-		const { size } = this.renderer;
-		return { x: Math.floor((e.clientX - rect.left) / size), y: Math.floor((e.clientY - rect.top) / size) };
-	}
-
 	private isTarget(p: Point): boolean {
 		return this.grid.isInterior(p) && this.grid.isOpen(p.x, p.y) && !samePoint(p, this.player);
 	}
 
-	private onMouseMove = (e: MouseEvent): void => {
-		if (this.phase !== 'play') return;
-		const pos = this.mousePosition(e);
-		if (samePoint(pos, this.lastMouse)) return;
-		this.lastMouse = pos;
-		// Over a wall, keep the last target so the path doesn't blink while the cursor crosses walls.
+	private aim(e: PointerEvent): void {
+		const pos = this.renderer.squareAt(e);
+		if (samePoint(pos, this.lastPointer)) return;
+		this.lastPointer = pos;
+		// Over a wall, keep the last target so the path doesn't blink while the pointer crosses walls.
 		if (this.isTarget(pos)) this.hover = pos;
 		else if (samePoint(pos, this.player)) this.hover = undefined;
 		else return;
 		this.drawPlay();
-	};
+	}
 
-	private onMouseLeave = (): void => {
-		this.lastMouse = undefined;
-		if (this.phase !== 'play' || !this.hover) return;
-		this.hover = undefined;
-		this.drawPlay();
-	};
-
-	private onMouseDown = (e: MouseEvent): void => {
-		if (this.phase !== 'play') return;
-		// Clicking a wall walks to the target that is still shown.
-		const pos = this.mousePosition(e);
-		const target = this.isTarget(pos) ? pos : this.hover;
+	private walk(target?: Point): void {
 		if (!target || samePoint(target, this.player)) return;
 		this.route = routeTo(this.grid, this.dist, target);
 		this.ticker.start(this.moveStep);
+	}
+
+	// A mouse previews on hover and walks on click. Touch has no hover: dragging a
+	// finger previews, and lifting it walks, so a plain tap walks straight there.
+	private onPointerMove = (e: PointerEvent): void => {
+		if (this.phase === 'play') this.aim(e);
+	};
+
+	private onPointerDown = (e: PointerEvent): void => {
+		if (this.phase !== 'play' || !e.isPrimary || e.button !== 0) return;
+		if (e.pointerType !== 'mouse') return this.aim(e);
+		// Clicking a wall walks to the target that is still shown.
+		const pos = this.renderer.squareAt(e);
+		this.walk(this.isTarget(pos) ? pos : this.hover);
+	};
+
+	private onPointerUp = (e: PointerEvent): void => {
+		if (this.phase === 'play' && e.isPrimary && e.pointerType !== 'mouse') this.walk(this.hover);
+	};
+
+	private onPointerLeave = (): void => {
+		this.lastPointer = undefined;
+		if (this.phase !== 'play' || !this.hover) return;
+		this.hover = undefined;
+		this.drawPlay();
 	};
 }
 
 const app = new App();
 app.reset();
 
-resetButton.addEventListener('click', () => app.reset());
-window.addEventListener('resize', () => app.reset());
+const setMenu = (open: boolean): void => {
+	navbar.classList.toggle('open', open);
+	menuButton.setAttribute('aria-expanded', String(open));
+};
+menuButton.addEventListener('click', () => setMenu(!navbar.classList.contains('open')));
+backdrop.addEventListener('click', () => setMenu(false));
+document.addEventListener('keydown', (e) => e.key === 'Escape' && setMenu(false));
+
+resetButton.addEventListener('click', () => {
+	setMenu(false);
+	app.reset();
+});
+
+// Phones resize the viewport when the URL bar or keyboard slides in and out. Only
+// rebuild the maze when the width changes (rotation, window resize) or the height
+// changes a lot without the Size field being edited.
+let viewport = { width: window.innerWidth, height: window.innerHeight };
+let resizeTimer = 0;
+window.addEventListener('resize', () => {
+	clearTimeout(resizeTimer);
+	resizeTimer = window.setTimeout(() => {
+		const { innerWidth: width, innerHeight: height } = window;
+		const typing = document.activeElement === sizeInput;
+		if (width === viewport.width && (Math.abs(height - viewport.height) < 150 || typing)) return;
+		viewport = { width, height };
+		app.reset();
+	}, 150);
+});
 pauseButton.addEventListener('click', () => app.togglePause());
 speedInput.addEventListener('input', () => app.setSpeed(parseInt(speedInput.value)));
 orderInput.addEventListener('change', () => app.redraw());

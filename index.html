@@ -2,6 +2,9 @@
 <html>
 
 <head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="theme-color" content="#0b1020">
 	<title>Maze</title>
 	<style type="text/css">
 		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
@@ -33,16 +36,18 @@
 
 		#canvas {
 			display: block;
-			margin: 0 auto;
-			width: 100%;
+			/* Taps and drags on the maze pick targets; don't scroll or zoom the page. */
+			touch-action: none;
 		}
 
 		#navbar {
+			position: relative;
+			z-index: 2;
 			display: flex;
 			flex-wrap: wrap;
 			align-items: center;
 			gap: 8px 20px;
-			padding: 10px 16px;
+			padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
 			background: var(--panel);
 			border-bottom: 1px solid var(--border);
 			backdrop-filter: blur(8px);
@@ -87,10 +92,20 @@
 			background: linear-gradient(90deg, hsl(55, 100%, 70%), hsl(3, 100%, 63%), hsl(310, 100%, 55%));
 		}
 
+		/* On wide screens the controls flow inline in the navbar; on phones they become a panel. */
+		#navbar .controls {
+			display: contents;
+		}
+
 		#navbar .actions {
 			display: inline-flex;
 			gap: 8px;
 			margin-left: auto;
+		}
+
+		#menubtn,
+		#backdrop {
+			display: none;
 		}
 
 		input[type="number"],
@@ -130,7 +145,8 @@
 			cursor: pointer;
 		}
 
-		input[type="button"] {
+		input[type="button"],
+		#menubtn {
 			height: 30px;
 			padding: 0 16px;
 			color: var(--text);
@@ -143,7 +159,8 @@
 			transition: background 0.15s, transform 0.05s;
 		}
 
-		input[type="button"]:hover {
+		input[type="button"]:hover,
+		#menubtn:hover {
 			background: #26305a;
 		}
 
@@ -160,35 +177,146 @@
 		#resetbtn:hover {
 			background: var(--accent-hover);
 		}
+
+		/* Phones: settings fold into a panel that drops over the maze, so opening it
+		   doesn't change the canvas size. */
+		@media (max-width: 760px) {
+			#navbar {
+				flex-wrap: nowrap;
+			}
+
+			#menubtn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				padding: 0;
+				width: 40px;
+			}
+
+			#menubtn svg {
+				width: 18px;
+				height: 18px;
+			}
+
+			#navbar .controls {
+				position: absolute;
+				top: 100%;
+				left: 0;
+				right: 0;
+				display: none;
+				flex-direction: column;
+				align-items: stretch;
+				gap: 14px;
+				padding: 16px max(16px, env(safe-area-inset-right)) 18px max(16px, env(safe-area-inset-left));
+				background: #141b30;
+				border-bottom: 1px solid var(--border);
+				box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+			}
+
+			#navbar.open .controls {
+				display: flex;
+			}
+
+			#navbar.open #menubtn {
+				border-color: var(--accent);
+			}
+
+			#navbar.open ~ #backdrop {
+				display: block;
+				position: fixed;
+				inset: 0;
+				z-index: 1;
+				background: rgba(0, 0, 0, 0.35);
+			}
+
+			#navbar label {
+				justify-content: space-between;
+				font-size: 14px;
+			}
+
+			#navbar label:has(input[type="checkbox"]) {
+				justify-content: flex-start;
+			}
+
+			#navbar select {
+				flex: 1;
+				min-width: 0;
+				max-width: 240px;
+			}
+
+			#navbar input[type="range"] {
+				flex: 1;
+				min-width: 0;
+			}
+
+			/* 16px keeps iOS Safari from zooming in when a field is focused. */
+			input[type="number"],
+			select {
+				font-size: 16px;
+			}
+
+			input[type="number"],
+			select,
+			input[type="button"],
+			#menubtn {
+				height: 36px;
+			}
+
+			input[type="checkbox"] {
+				width: 20px;
+				height: 20px;
+			}
+		}
+
+		@media (max-width: 380px) {
+			#navbar .brand {
+				font-size: 14px;
+			}
+
+			input[type="button"] {
+				padding: 0 12px;
+			}
+		}
 	</style>
 </head>
 
 <body>
 	<div id="navbar">
 		<div class="brand">Maze<span>Generator</span></div>
-		<label>Size <input type="number" min="5" max="40" step="5" value="20" id="sizetxt"></label>
-		<label>Algorithm
-			<select id="algotxt">
-				<option value="0">Breadth-first search transversal</option>
-				<option value="1">Depth-first search transversal</option>
-				<option value="2" selected="selected">Prim's</option>
-				<option value="3">Kruskal's</option>
-			</select>
-		</label>
-		<label><input type="checkbox" id="randomtxt" checked> Random</label>
-		<label title="Percentage of dead ends that get a bridge (applies on Reset)">Bridge <input type="range" min="0" max="100" step="5" value="50" id="bridgetxt"> <span id="bridgeval" class="value">50%</span></label>
-		<label title="Color the frontier (queue / stack / priority queue) by pop order: yellow is taken next, magenta last"><input type="checkbox" id="ordertxt"> Color priority <span class="ramp"></span></label>
-		<label>Speed <small>slow</small> <input type="range" min="1" max="100" step="1" value="50" list="tickmarks" id="speedtxt"> <small>fast</small>
-			<datalist id="tickmarks">
-				<option value="1">
-				<option value="100">
-			</datalist>
-		</label>
+		<div class="controls" id="controls">
+			<label>Size <input type="number" min="5" max="40" step="5" value="20" id="sizetxt"></label>
+			<label>Algorithm
+				<select id="algotxt">
+					<option value="0">Breadth-first search transversal</option>
+					<option value="1">Depth-first search transversal</option>
+					<option value="2" selected="selected">Prim's</option>
+					<option value="3">Kruskal's</option>
+				</select>
+			</label>
+			<label><input type="checkbox" id="randomtxt" checked> Random</label>
+			<label title="Percentage of dead ends that get a bridge (applies on Reset)">Bridge <input type="range" min="0" max="100" step="5" value="50" id="bridgetxt"> <span id="bridgeval" class="value">50%</span></label>
+			<label title="Color the frontier (queue / stack / priority queue) by pop order: yellow is taken next, magenta last"><input type="checkbox" id="ordertxt"> Color priority <span class="ramp"></span></label>
+			<label>Speed <small>slow</small> <input type="range" min="1" max="100" step="1" value="50" list="tickmarks" id="speedtxt"> <small>fast</small>
+				<datalist id="tickmarks">
+					<option value="1">
+					<option value="100">
+				</datalist>
+			</label>
+		</div>
 		<div class="actions">
+			<button type="button" id="menubtn" aria-label="Settings" aria-controls="controls" aria-expanded="false">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+					<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+					<circle cx="16" cy="6" r="2" />
+					<circle cx="10" cy="12" r="2" />
+					<circle cx="18" cy="18" r="2" />
+				</svg>
+			</button>
 			<input type="button" value="Reset" id="resetbtn">
 			<input type="button" value="Pause" id="pausebtn">
 		</div>
 	</div>
+	<div id="backdrop"></div>
 	<canvas id="canvas" width="500" height="400"></canvas>
 	<!-- <script type="text/javascript" src="build/maze-min.js"></script> -->
 	<script type="module" src="/src/maze.js"></script>

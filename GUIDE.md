@@ -21,6 +21,8 @@ Try it online: **https://mharvianto.github.io/MazeGenerator/**
 | **Reset** | Generates a new maze with the current settings. |
 | **Pause / Play** | Pauses or resumes the animation. |
 
+On a phone, the settings fold into a panel: tap the sliders button next to **Reset** to open it, and tap the maze or **Reset** to close it.
+
 > **Important:** changes to **Size, Algorithm, Random** and **Bridge** only take effect after you press **Reset**. Resizing the browser window also generates a new maze automatically.
 
 ### Workflow
@@ -30,6 +32,7 @@ Try it online: **https://mharvianto.github.io/MazeGenerator/**
 3. **Interactive mode.** Once the maze is done:
    - **Hover** over a cell. The shortest path from the player (blue square) to that cell is drawn as a red line. When the cursor crosses a wall, the last target stays shown, and the path disappears once the cursor leaves the maze.
    - **Click**. The player moves along the path to the shown target, and the remaining route is shown in green.
+   - **On a touch screen**, drag a finger to preview the path and lift it to walk there. A quick tap walks straight to the tapped cell.
 
 ### Colors
 

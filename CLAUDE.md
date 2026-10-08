@@ -21,7 +21,7 @@ A single-page canvas app. `index.html` holds the UI controls, and `index.html` l
 
 - `grid.ts`: `Grid` with flat `Uint8Array` squares, plus `Point`/`Edge` types. Cells sit at odd coordinates, and the squares between them are walls. An `Edge` is a cell plus the wall `(fx, fy)` that connects it to the cell it was reached from.
 - `containers.ts`: `Queue`, `Stack` and `PriorityQueue` behind one `Container` interface. `ordered()` returns items in pop order, which Color priority uses.
-- `generators.ts`: `createGenerator()` maps the Algorithm dropdown value to a `Generator`. BFS, DFS and Prim's are one `FrontierGenerator` with different containers. `KruskalGenerator` uses union-find and draws no frontier.
+- `generators.ts`: `createGenerator()` maps the Algorithm dropdown value to a `Generator`. BFS, DFS and Prim's are one `FrontierGenerator` with different containers. DFS passes `revisit`, so a cell can be queued once per neighbor and the newest entry wins. BFS and Prim's queue each cell once, and for BFS the result is the same either way. `KruskalGenerator` uses union-find and draws no frontier.
 - `weights.ts`: `Weights` provides all generation and bridge randomness (`next()`, `chance()`). With Random off it yields a counter instead, so the order is deterministic. Only the start cell (`Grid.randomCell`) always uses `Math.random`.
 - `bridges.ts`: the Bridge phase. It walks every cell and, at a percentage of dead ends, opens one more wall. It prefers joining another dead end if the loop is at least `MIN_LOOP` squares, and otherwise the longest loop.
 - `pathfinding.ts`: `bfs()` computes distances (optionally stopping once given targets are reached), and `routeTo()` walks back down the distance gradient.

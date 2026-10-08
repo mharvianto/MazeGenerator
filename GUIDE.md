@@ -76,11 +76,11 @@ The only difference between the three is **which cell is taken from the frontier
 ### Breadth-first search (BFS)
 
 - **Frontier:** a *queue* (FIFO). The cell that has waited longest is taken first.
-- **Result:** the maze grows evenly in every direction from the starting point, like a wave. Paths tend to be short, with many branches near the start.
+- **Result:** the maze grows evenly in every direction from the starting point, like a wave. Every cell connects to whichever neighbor reached it first, so the maze becomes **long straight corridors radiating from the start**, with short side branches. The shortest path from the start to any cell is as short as possible.
 
 ### Depth-first search (DFS)
 
-- **Frontier:** a *stack* (LIFO). The most recently added cell is taken first.
+- **Frontier:** a *stack* (LIFO). The most recently added cell is taken first. A cell can be on the stack several times (once for each neighbor that reached it), and the newest entry wins.
 - **Result:** the maze runs far in one direction before turning back, creating **long corridors** with few branches. These mazes usually feel the hardest.
 
 ### Prim's
@@ -104,7 +104,7 @@ Kruskal's doesn't grow the maze from a single point.
 
 | Algorithm | Data structure | How it grows | Maze character |
 | --- | --- | --- | --- |
-| BFS | Queue | Evenly from the start | Short paths, many branches near the start |
+| BFS | Queue | Evenly from the start | Straight corridors radiating from the start |
 | DFS | Stack | Runs far, then backtracks | Long corridors, few branches |
 | Prim's | Priority queue (random weights) | From the start in random directions | Many short branches and dead ends |
 | Kruskal's | Priority queue + union-find | Everywhere at once | Similar to Prim's |

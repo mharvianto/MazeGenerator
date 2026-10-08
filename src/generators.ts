@@ -16,6 +16,11 @@ export interface Generator {
 /**
  * BFS, DFS and Prim's: open a cell, push its unopened neighbors with random weights,
  * then pop the next one. Only the container differs.
+ *
+ * With `revisit`, a cell can sit in the frontier several times (once per neighbor
+ * that reached it) and is carved from whichever entry pops first. DFS needs this:
+ * the newest discovery must win, or it degrades into a Prim-like tree. BFS and
+ * Prim's queue each cell once (for BFS the oldest entry wins either way).
  */
 class FrontierGenerator implements Generator {
 	private readonly queued: Uint8Array;
@@ -24,25 +29,28 @@ class FrontierGenerator implements Generator {
 		private readonly grid: Grid,
 		private readonly weights: Weights,
 		private readonly container: Container<WeightedEdge>,
-		start: Point
+		start: Point,
+		private readonly revisit = false
 	) {
 		this.queued = new Uint8Array(grid.width * grid.height);
 		this.carve({ ...start, fx: start.x, fy: start.y });
 	}
 
 	step(): Point | undefined {
-		const edge = this.container.pop();
+		// Skip stale entries for cells already carved, so every step carves one cell.
+		let edge: WeightedEdge | undefined;
+		while ((edge = this.container.pop()) && this.grid.isOpen(edge.x, edge.y));
 		if (edge) this.carve(edge);
 		return edge;
 	}
 
 	frontier(ordered: boolean): readonly Edge[] {
-		return ordered ? this.container.ordered() : this.container.items();
+		const items = ordered ? this.container.ordered() : this.container.items();
+		return this.revisit ? items.filter((e) => !this.grid.isOpen(e.x, e.y)) : items;
 	}
 
 	private carve(edge: Edge): void {
 		const { grid, weights } = this;
-		if (grid.isOpen(edge.x, edge.y)) return;
 		grid.open(edge.x, edge.y);
 		grid.open(edge.fx, edge.fy);
 		// Shuffle the neighbors by weight, then push them heaviest first.
@@ -53,7 +61,7 @@ class FrontierGenerator implements Generator {
 		for (let i = moves.length - 1; i >= 0; i--) {
 			const move = moves[i];
 			const k = grid.index(move.x, move.y);
-			if (this.queued[k] || grid.isOpen(move.x, move.y)) continue;
+			if ((this.queued[k] && !this.revisit) || grid.isOpen(move.x, move.y)) continue;
 			this.queued[k] = 1;
 			this.container.push({ ...move, w: weights.next() });
 		}
@@ -121,7 +129,7 @@ export function createGenerator(algorithm: string, grid: Grid, weights: Weights,
 		case '0':
 			return new FrontierGenerator(grid, weights, new Queue(), start);
 		case '1':
-			return new FrontierGenerator(grid, weights, new Stack(), start);
+			return new FrontierGenerator(grid, weights, new Stack(), start, true);
 		case '3':
 			return new KruskalGenerator(grid, weights);
 		default:

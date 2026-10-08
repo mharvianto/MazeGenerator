@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run preview` — serve the built `dist/`
 - `npx tsc --noEmit`: type-check only (Vite itself strips types without checking)
 
-There is no test suite or linter. To check UI changes in a real browser, use `playwright` (a devDependency) as a library from a scratch script against `npm run dev`. Chromium lives outside the repo, so after a container rebuild run `npx playwright install --with-deps chromium` again. `test.cpp` is a standalone C++ prototype of the Dijkstra/maze logic, not wired into anything.
+There is no test suite or linter. To check UI changes in a real browser, use `playwright` (a devDependency) as a library from a scratch script against `npm run dev`. Chromium lives outside the repo, so after a container rebuild run `npx playwright install --with-deps chromium` again.
 
 ## Deployment
 

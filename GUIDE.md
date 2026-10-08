@@ -15,7 +15,7 @@ Try it online: **https://mharvianto.github.io/MazeGenerator/**
 | **Size** | Size of one cell in pixels (5–40). A larger value means bigger cells and **fewer** cells on screen. |
 | **Algorithm** | The maze generation algorithm: BFS, DFS, Prim's or Kruskal's. See the explanations [below](#maze-generation-algorithms). |
 | **Random** | When on, the generation order is random. When off, the order is fixed and the pattern is regular. |
-| **Bridge** | When on, some dead ends are knocked through so the maze has loops (orange cells). When off, the maze is "perfect": there is exactly one path between any two points. |
+| **Bridge** | Percentage of dead ends that get a bridge, which creates loops (orange cells). At 0% the maze is "perfect": there is exactly one path between any two points. At 100% no dead ends are left. |
 | **Color priority** | Colors the frontier (the queue, stack or priority queue) by the order its cells will be taken: yellow is taken next, through red, to magenta last. Takes effect immediately, without Reset. |
 | **Speed** | Animation speed. Slide right to go faster (about 2 to 2000 steps per second). Takes effect while you slide. |
 | **Reset** | Generates a new maze with the current settings. |
@@ -26,7 +26,7 @@ Try it online: **https://mharvianto.github.io/MazeGenerator/**
 ### Workflow
 
 1. **Maze generation.** The maze is built step by step from a random starting point.
-2. **Bridge creation** (when Bridge is on). The program walks the whole maze and knocks out one wall at each dead end.
+2. **Bridge creation** (when Bridge is above 0%). The program walks the whole maze and knocks out a wall at some of the dead ends.
 3. **Interactive mode.** Once the maze is done:
    - **Hover** over a cell. The shortest path from the player (blue square) to that cell is drawn as a red line.
    - **Click** the cell. The player moves along that path, and the remaining route is shown in green.
@@ -56,7 +56,7 @@ The screen is divided into a grid. Walkable cells sit at **odd** coordinates, an
 # # # # # # #
 ```
 
-All four algorithms produce a **spanning tree**: every cell is connected, and there are no loops. Loops only appear when **Bridge** is on.
+All four algorithms produce a **spanning tree**: every cell is connected, and there are no loops. Loops only appear when **Bridge** is above 0%.
 
 ---
 
@@ -121,9 +121,14 @@ The starting position **stays random**, so the maze can still differ on each Res
 
 ## Bridge: creating loops
 
-When **Bridge** is on, the program walks every cell once the maze is finished. At each **dead end**, meaning a cell with only one way out, it knocks out one other wall at random into a neighboring cell. These knocked-out walls are marked **orange**.
+When **Bridge** is above 0%, the program walks every cell once the maze is finished. At each **dead end**, meaning a cell with only one way out, it decides whether to add a bridge based on the Bridge percentage. When Random is off, bridges are spread evenly instead of chosen by chance.
 
-The result is no longer a tree: there is more than one path between two points, and there are far fewer dead ends.
+To add a bridge, it looks at the closed walls around the dead end and measures, for each one, how long the loop it would close is: the current path length to the cell on the other side.
+
+1. **Join two dead ends.** If the cell on the other side is also a dead end and the loop is long enough (at least 6 cells), that wall is chosen. One bridge then removes two dead ends.
+2. **Otherwise, take the longest loop.** The wall that closes the longest loop is chosen. The bridge becomes a real shortcut instead of a tiny 2×2 room.
+
+The knocked-out walls are marked **orange**. The result is no longer a tree: there is more than one path between two points. Because one bridge can remove two dead ends, the share of dead ends that disappears can be higher than the percentage you set.
 
 ---
 

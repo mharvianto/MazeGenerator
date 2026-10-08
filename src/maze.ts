@@ -13,6 +13,10 @@ interface WeightedNode extends Node {
 	w: number;
 }
 
+interface BridgeCandidate extends WeightedNode {
+	d: number;
+}
+
 interface PriorityQueueOptions {
 	compare?: (a: any, b: any) => boolean;
 }
@@ -127,6 +131,7 @@ interface QueueInterface<T> {
 	const rd = $('#randomtxt') as HTMLInputElement;
 	const br = $('#bridgetxt') as HTMLInputElement;
 	const co = $('#ordertxt') as HTMLInputElement;
+	const bv = $('#bridgeval') as HTMLElement;
 
 	// Slider 1..100 maps exponentially to 2..2000 steps per second. Timers can't
 	// fire much faster than ~60/s reliably, so higher rates run several steps per tick.
@@ -183,6 +188,7 @@ interface QueueInterface<T> {
 			redraw: () => { }
 		};
 		let visited: number[][];
+		let queued: number[][];
 		let qq: Node[];
 		let cycle: Node[] = [];
 		let distance: number[][];
@@ -191,7 +197,8 @@ interface QueueInterface<T> {
 		let currMouse: Node | undefined;
 		let kruskal: boolean;
 		let random: boolean;
-		let bridge: boolean;
+		let bridge: number;
+		let bridgeAcc: number;
 		let seq: number;
 		let parent: number[];
 		const opt: PriorityQueueOptions = { compare: (a: WeightedNode, b: WeightedNode) => a.w < b.w };
@@ -303,45 +310,79 @@ interface QueueInterface<T> {
 			return arr;
 		};
 
-		const fill = function (node: Node): void {
-			const t = { x: node.x, y: node.y } as Node;
-			if (map[t.x][t.y] && !visited[t.x][t.y]) {
-				visited[t.x][t.y] = 1;
-				const temp: Node[] = [];
-				let n: Node | undefined;
-				if (t.x - 2 > 0) temp.push({ x: t.x - 2, y: t.y } as Node);
-				if (t.y - 2 > 0) temp.push({ x: t.x, y: t.y - 2 } as Node);
-				if (t.x + 2 < width - 1) temp.push({ x: t.x + 2, y: t.y } as Node);
-				if (t.y + 2 < height - 1) temp.push({ x: t.x, y: t.y + 2 } as Node);
-				while ((n = temp.shift())) {
-					if (qq.filter(({ x, y }) => x === n!.x && y === n!.y).length < 1) qq.push(n);
-				}
-				if (
-					map[t.x - 1][t.y] + map[t.x][t.y - 1] + map[t.x + 1][t.y] + map[t.x][t.y + 1] ===
-					1
-				) {
-					const movesHole: WeightedNode[] = [];
-					let hole: WeightedNode | undefined;
-					movesHole.push({ w: rand(), x: t.x - 2, y: t.y, fx: t.x - 1, fy: t.y } as WeightedNode);
-					movesHole.push({ w: rand(), x: t.x + 2, y: t.y, fx: t.x + 1, fy: t.y } as WeightedNode);
-					movesHole.push({ w: rand(), x: t.x, y: t.y - 2, fx: t.x, fy: t.y - 1 } as WeightedNode);
-					movesHole.push({ w: rand(), x: t.x, y: t.y + 2, fx: t.x, fy: t.y + 1 } as WeightedNode);
-					movesHole.sort((a, b) => a && b ? a.w - b.w : 0);
-					while ((hole = movesHole.shift())) {
-						if (
-							hole.x > 0 &&
-							hole.y > 0 &&
-							hole.x < width - 1 &&
-							hole.y < height - 1 &&
-							!map[hole.fx!][hole.fy!]
-						) {
-							map[hole.fx!][hole.fy!] = 1;
-							cycle.push({ x: t.x, y: t.y, fx: hole.fx, fy: hole.fy } as WeightedNode);
-							break;
-						}
+		// A bridge closing a loop shorter than this (in grid squares) would just make a
+		// small 2x2 room, so dead-end-to-dead-end bridges must be at least this long.
+		const MIN_LOOP = 12;
+
+		const isDeadEnd = (cx: number, cy: number): boolean =>
+			map[cx - 1][cy] + map[cx][cy - 1] + map[cx + 1][cy] + map[cx][cy + 1] === 1;
+
+		const cellNeighbors = function (t: Node): Node[] {
+			const n: Node[] = [];
+			if (t.x - 2 > 0) n.push({ x: t.x - 2, y: t.y, fx: t.x - 1, fy: t.y } as Node);
+			if (t.y - 2 > 0) n.push({ x: t.x, y: t.y - 2, fx: t.x, fy: t.y - 1 } as Node);
+			if (t.x + 2 < width - 1) n.push({ x: t.x + 2, y: t.y, fx: t.x + 1, fy: t.y } as Node);
+			if (t.y + 2 < height - 1) n.push({ x: t.x, y: t.y + 2, fx: t.x, fy: t.y + 1 } as Node);
+			return n;
+		};
+
+		// BFS through open squares from `from`, stopping once every target is reached.
+		// Returns each target's path length, which is the length of the loop a bridge to it would close.
+		const pathLengths = function (from: Node, targets: Node[]): number[] {
+			const dist = new Int32Array(width * height).fill(-1);
+			const queue = [from.x * height + from.y];
+			let left = targets.length;
+			dist[queue[0]] = 0;
+			for (let head = 0; head < queue.length && left > 0; head++) {
+				const i = queue[head];
+				const cx = Math.floor(i / height);
+				const cy = i % height;
+				for (const [nx, ny] of [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]]) {
+					const j = nx * height + ny;
+					if (map[nx][ny] && dist[j] < 0) {
+						dist[j] = dist[i] + 1;
+						queue.push(j);
+						if (targets.some((t) => t.x === nx && t.y === ny)) left--;
 					}
 				}
 			}
+			return targets.map((t) => (dist[t.x * height + t.y] < 0 ? Infinity : dist[t.x * height + t.y]));
+		};
+
+		// Bridge only `bridge`% of dead ends. With Random off, an accumulator spreads
+		// them evenly instead of rolling dice.
+		const chance = function (): boolean {
+			if (random) return Math.random() * 100 < bridge;
+			bridgeAcc += bridge;
+			if (bridgeAcc < 100) return false;
+			bridgeAcc -= 100;
+			return true;
+		};
+
+		const fill = function (t: Node): void {
+			if (visited[t.x][t.y]) return;
+			visited[t.x][t.y] = 1;
+			cellNeighbors(t).forEach((n) => {
+				if (!queued[n.x][n.y]) {
+					queued[n.x][n.y] = 1;
+					qq.push(n);
+				}
+			});
+			if (!isDeadEnd(t.x, t.y) || !chance()) return;
+			// Prefer joining another dead end (removes two at once), but only if the loop
+			// is long enough; otherwise take the wall that closes the longest loop.
+			const options = cellNeighbors(t)
+				.filter((n) => !map[n.fx!][n.fy!])
+				.map((n) => ({ ...n, w: rand() }) as BridgeCandidate);
+			if (!options.length) return;
+			const dist = pathLengths(t, options);
+			options.forEach((o, i) => (o.d = dist[i]));
+			const ends = options.filter((o) => isDeadEnd(o.x, o.y) && o.d >= MIN_LOOP);
+			const pick = (ends.length ? ends : options).reduce((best, o) =>
+				o.d > best.d || (o.d === best.d && o.w < best.w) ? o : best
+			);
+			map[pick.fx!][pick.fy!] = 1;
+			cycle.push({ x: t.x, y: t.y, fx: pick.fx, fy: pick.fy } as Node);
 		};
 
 		const mousePosition = function (event: MouseEvent): Node {
@@ -354,8 +395,9 @@ interface QueueInterface<T> {
 
 		const floodFill = function (): void {
 			visited = memset(width, height);
-			qq = [];
-			qq.push({ x, y } as Node);
+			queued = memset(width, height);
+			qq = [{ x, y } as Node];
+			queued[x][y] = 1;
 			run(obj.floodFillStep);
 		};
 
@@ -479,7 +521,7 @@ interface QueueInterface<T> {
 				obj.stop();
 				obj.st++;
 				// The flood-fill phase only exists to add bridges; skip it when they're off.
-				if (bridge) floodFill();
+				if (bridge > 0) floodFill();
 				else {
 					obj.st++;
 					mouseListener();
@@ -510,7 +552,8 @@ interface QueueInterface<T> {
 			c.removeEventListener('mousemove', mouseMove);
 			c.removeEventListener('mousedown', mouseClick);
 			random = rd.checked;
-			bridge = br.checked;
+			bridge = parseInt(br.value);
+			bridgeAcc = 0;
 			seq = 0;
 			kruskal = al.value === '3';
 			if (kruskal) initKruskal();
@@ -553,6 +596,10 @@ interface QueueInterface<T> {
 	pb.addEventListener('click', function () {
 		pause = !pause;
 		pb.value = pb.value === 'Pause' ? 'Play' : 'Pause';
+	});
+
+	br.addEventListener('input', function () {
+		bv.textContent = br.value + '%';
 	});
 
 	co.addEventListener('change', function () {

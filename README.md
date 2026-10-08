@@ -1,5 +1,7 @@
 # MazeGenerator
 
+Cara menggunakan dan penjelasan algoritmanya ada di [PANDUAN.md](PANDUAN.md).
+
 ## Jalankan tanpa install apa pun
 
 Project ini sudah disiapkan untuk deploy otomatis ke GitHub Pages.

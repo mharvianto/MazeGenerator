@@ -1,23 +1,23 @@
 # MazeGenerator
 
-Cara menggunakan dan penjelasan algoritmanya ada di [GUIDE.md](GUIDE.md) (bahasa Inggris).
+How to use it and how the algorithms work is explained in [GUIDE.md](GUIDE.md).
 
-## Jalankan tanpa install apa pun
+## Run it without installing anything
 
-Project ini sudah disiapkan untuk deploy otomatis ke GitHub Pages.
+This project is set up to deploy automatically to GitHub Pages.
 
-### Sekali setup di GitHub
+### One-time setup on GitHub
 
-1. Buka repository di GitHub.
-2. Masuk ke `Settings` -> `Pages`.
-3. Di bagian `Build and deployment`, pilih `Source: GitHub Actions`.
+1. Open the repository on GitHub.
+2. Go to `Settings` -> `Pages`.
+3. Under `Build and deployment`, choose `Source: GitHub Actions`.
 
-### Cara publish
+### Publishing
 
-1. Push perubahan ke branch `master`.
-2. Tunggu workflow `Deploy to GitHub Pages` selesai.
-3. Buka URL:
+1. Push changes to the `master` branch.
+2. Wait for the `Deploy to GitHub Pages` workflow to finish.
+3. Open the URL:
 
 [Web](https://mharvianto.github.io/MazeGenerator/)
 
-Pengguna cukup buka link tersebut di browser, tanpa install aplikasi apa pun.
+Users just open that link in a browser, with nothing to install.

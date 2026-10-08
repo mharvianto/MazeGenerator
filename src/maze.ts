@@ -61,10 +61,13 @@ class App {
 
 	reset(): void {
 		this.ticker.stop();
+		// The field's min/max only limit the spinner, not typing, so clamp here.
+		const cellSize = Math.min(40, Math.max(5, parseInt(sizeInput.value) || 20));
+		sizeInput.value = String(cellSize);
 		const { width, height } = this.renderer.resize(
 			window.innerWidth,
 			window.innerHeight - navbar.offsetHeight,
-			parseInt(sizeInput.value)
+			cellSize
 		);
 		this.grid = new Grid(width, height);
 		this.ticker.setSpeed(parseInt(speedInput.value));

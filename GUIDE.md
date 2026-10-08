@@ -32,6 +32,7 @@ On a phone, the settings fold into a panel: tap the sliders button next to **Res
 3. **Interactive mode.** Once the maze is done:
    - **Hover** over a cell. The shortest path from the player (blue square) to that cell is drawn as a red line. When the cursor crosses a wall, the last target stays shown, and the path disappears once the cursor leaves the maze.
    - **Click**. The player moves along the path to the shown target, and the remaining route is shown in green.
+   - **With the keyboard**, the arrow keys or W/A/S/D move the player one cell at a time. Keys are ignored while a slider, the Size field or the dropdown has focus; click the maze to move focus away.
    - **On a touch screen**, drag a finger to preview the path and lift it to walk there. A quick tap walks straight to the tapped cell.
 
 ### Colors

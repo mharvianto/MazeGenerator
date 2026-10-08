@@ -94,6 +94,26 @@ class App {
 		this.ticker.setSpeed(slider);
 	}
 
+	/**
+	 * Move the player one cell in a direction if the wall is open. Cancels any walk in
+	 * progress; if the player is mid-passage, it finishes into the next cell that way.
+	 */
+	step(dx: number, dy: number): void {
+		if (this.phase !== 'play') return;
+		let p = this.player;
+		do {
+			const next = { x: p.x + dx, y: p.y + dy };
+			if (!this.grid.isOpen(next.x, next.y)) break;
+			p = next;
+		} while (p.x % 2 === 0 || p.y % 2 === 0);
+		if (samePoint(p, this.player)) return;
+		this.ticker.stop();
+		this.route = [];
+		this.player = p;
+		this.dist = bfs(this.grid, p);
+		this.drawPlay();
+	}
+
 	redraw(): void {
 		if (this.phase === 'play') this.drawPlay();
 		else this.drawMaze(this.highlight);
@@ -241,6 +261,25 @@ window.addEventListener('resize', () => {
 pauseButton.addEventListener('click', () => app.togglePause());
 speedInput.addEventListener('input', () => app.setSpeed(parseInt(speedInput.value)));
 orderInput.addEventListener('change', () => app.redraw());
+const KEYS: Record<string, [number, number]> = {
+	ArrowUp: [0, -1],
+	ArrowDown: [0, 1],
+	ArrowLeft: [-1, 0],
+	ArrowRight: [1, 0],
+	w: [0, -1],
+	s: [0, 1],
+	a: [-1, 0],
+	d: [1, 0]
+};
+document.addEventListener('keydown', (e) => {
+	const dir = KEYS[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+	// Leave arrow keys to controls that use them: sliders, the Size field, the dropdown.
+	const control = (e.target as Element).closest('input[type="range"], input[type="number"], select');
+	if (!dir || control || e.ctrlKey || e.metaKey || e.altKey) return;
+	e.preventDefault();
+	app.step(dir[0], dir[1]);
+});
+
 bridgeInput.addEventListener('input', () => {
 	bridgeValue.textContent = bridgeInput.value + '%';
 });

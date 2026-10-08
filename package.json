@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
     "dev": "vite",
     "preview": "vite preview"
   },

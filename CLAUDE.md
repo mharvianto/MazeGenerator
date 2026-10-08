@@ -17,17 +17,16 @@ Pushing to `master` triggers `.github/workflows/deploy-pages.yml`, which runs `n
 
 ## Architecture
 
-A single-page canvas app: `index.html` holds the UI controls (size, algorithm, speed, reset, pause), and all logic is in one IIFE in `src/maze.ts`. `index.html` loads it as `/src/maze.js`; Vite resolves this to the `.ts` file.
+A single-page canvas app. `index.html` holds the UI controls, and `index.html` loads `/src/maze.js`, which Vite resolves to `src/maze.ts`, the entry point. The `src/` modules:
 
-**Grid model.** `map[x][y]` is a 2D grid where 1 means open. Cells sit at odd coordinates, and the even coordinates between them are walls or passages. Moves step by 2, and `fx/fy` on a node is the wall cell between it and its parent, which gets carved open.
+- `grid.ts`: `Grid` with flat `Uint8Array` squares, plus `Point`/`Edge` types. Cells sit at odd coordinates, and the squares between them are walls. An `Edge` is a cell plus the wall `(fx, fy)` that connects it to the cell it was reached from.
+- `containers.ts`: `Queue`, `Stack` and `PriorityQueue` behind one `Container` interface. `ordered()` returns items in pop order, which Color priority uses.
+- `generators.ts`: `createGenerator()` maps the Algorithm dropdown value to a `Generator`. BFS, DFS and Prim's are one `FrontierGenerator` with different containers. `KruskalGenerator` uses union-find and draws no frontier.
+- `weights.ts`: `Weights` provides all generation and bridge randomness (`next()`, `chance()`). With Random off it yields a counter instead, so the order is deterministic. Only the start cell (`Grid.randomCell`) always uses `Math.random`.
+- `bridges.ts`: the Bridge phase. It walks every cell and, at a percentage of dead ends, opens one more wall. It prefers joining another dead end if the loop is at least `MIN_LOOP` squares, and otherwise the longest loop.
+- `pathfinding.ts`: `bfs()` computes distances (optionally stopping once given targets are reached), and `routeTo()` walks back down the distance gradient.
+- `renderer.ts`: canvas drawing (`square`, `line`), the `COLORS` palette and `rankColor`.
+- `ticker.ts`: `Ticker` runs one step function on `setInterval`. It maps the speed slider to a delay plus steps per tick, restarts itself on speed changes, and skips steps while paused.
+- `maze.ts`: `App` wires the DOM and runs the phases `generate`, then `bridge` (skipped at 0%), then `play`. Each step function stops the ticker and starts the next phase when its source runs dry. `drawMaze`/`drawPlay` redraw the whole scene every step.
 
-**Generation is one algorithm with interchangeable frontiers.** `addMaze` pushes randomly weighted neighbors into `pq`, and `start()` picks the container from the dropdown: `Queue` (BFS), `Stack` (DFS) or `PriorityQueue` on random weights (Prim's). All three share the `QueueInterface` shape. Kruskal's (`kruskal` flag) is the exception: `initKruskal` fills a `PriorityQueue` with every wall at random weights, and `renderView` calls `joinKruskal` (union-find via `parent`/`find`) instead of `addMaze`. In that mode `drawMaze` doesn't draw the frontier in red. All weights come from `rand()`. With the Random checkbox off, it returns an increasing counter (`seq`) instead, so the order is deterministic. The start position stays random either way. Each container also implements `ordered()`, which returns its items in pop order (a sorted copy for `PriorityQueue`). With the Color priority checkbox on, `drawMaze` colors the frontier by that rank via `rankColor`. The checkbox calls `obj.redraw()` so it applies without a reset.
-
-**Three-phase state machine driven by `run(step)`**, tracked in `obj.st`. `run` wraps `setInterval`, and `updateSpeed` maps the slider to `delay` plus `stepsPerTick`, so fast speeds run several steps per tick:
-0. `renderView`: pop the frontier and carve until it is empty
-1. `floodFillStep`: walk the maze and, at dead ends (exactly one open neighbor), maybe knock out one extra wall to create a loop (drawn orange via `cycle`). The Bridge slider sets the percentage via `chance()`. Among the closed walls, `fill` prefers another dead end whose loop is at least `MIN_LOOP` squares, and otherwise the longest loop. `pathLengths` measures loops by BFS. This phase is skipped at 0%.
-2. Interactive: `dijkstra` computes `distance[][]` from the player's position (blue). Hovering draws the shortest path via `pathMove`, which descends the distance gradient. Clicking animates the player along it with `moveNode`.
-
-Each phase stops its own interval, increments `st` and starts the next one. Inside a tick, `run` stops looping as soon as `interval` changes. `obj.stop()` resets it to 0, and the next phase's `run` replaces it. The speed slider handler restarts the step function indexed by `st`, so a new phase must be added there as well. Pause is a global flag that every step function checks. Window resize triggers a full reset.
-
-Rendering is immediate-mode: `drawMaze` clears and redraws the whole grid every tick.
+Generation order must stay exactly as is: every `Math.random`/`Weights` call, in order, determines the maze. A refactor can be checked by seeding `Math.random` in Playwright and pixel-comparing the final canvas against the old build. Seed and click Reset in one `page.evaluate`, because the maze running from page load keeps consuming random numbers.

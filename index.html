@@ -4,40 +4,156 @@
 <head>
 	<title>Maze</title>
 	<style type="text/css">
-		@import url('https://fonts.googleapis.com/css?family=Roboto');
+		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+		:root {
+			--bg: #0b1020;
+			--panel: rgba(20, 27, 48, 0.85);
+			--border: rgba(255, 255, 255, 0.08);
+			--text: #e6e9f2;
+			--muted: #8b93a7;
+			--accent: #6c8cff;
+			--accent-hover: #8aa3ff;
+			--control: #1b2340;
+		}
 
 		body,
 		html {
 			padding: 0;
 			margin: 0;
-			background: #000000;
+			background: var(--bg);
 			overflow: hidden;
 			height: 100%;
 		}
 
 		* {
-			font-family: 'Roboto', sans-serif;
+			box-sizing: border-box;
+			font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 		}
 
 		#canvas {
+			display: block;
 			margin: 0 auto;
 			width: 100%;
 		}
 
 		#navbar {
-			padding: 10px;
-			background: #ffffff;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 8px 20px;
+			padding: 10px 16px;
+			background: var(--panel);
+			border-bottom: 1px solid var(--border);
+			backdrop-filter: blur(8px);
+			color: var(--text);
+			font-size: 13px;
+		}
+
+		#navbar .brand {
+			font-weight: 600;
+			font-size: 15px;
+			letter-spacing: 0.02em;
+			margin-right: 4px;
+		}
+
+		#navbar .brand span {
+			color: var(--accent);
+		}
+
+		#navbar label {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			color: var(--muted);
+			font-weight: 500;
+		}
+
+		#navbar small {
+			font-size: 11px;
+			color: var(--muted);
+		}
+
+		#navbar .actions {
+			display: inline-flex;
+			gap: 8px;
+			margin-left: auto;
+		}
+
+		input[type="number"],
+		select {
+			height: 30px;
+			padding: 0 10px;
+			color: var(--text);
+			background: var(--control);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			font-size: 13px;
+			outline: none;
+			transition: border-color 0.15s, box-shadow 0.15s;
+		}
+
+		input[type="number"] {
+			width: 64px;
+		}
+
+		input[type="number"]:focus,
+		select:focus {
+			border-color: var(--accent);
+			box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.25);
+		}
+
+		input[type="checkbox"] {
+			width: 16px;
+			height: 16px;
+			margin: 0;
+			accent-color: var(--accent);
+			cursor: pointer;
 		}
 
 		input[type="range"] {
-			vertical-align: middle;
+			width: 120px;
+			accent-color: var(--accent);
+			cursor: pointer;
+		}
+
+		input[type="button"] {
+			height: 30px;
+			padding: 0 16px;
+			color: var(--text);
+			background: var(--control);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: background 0.15s, transform 0.05s;
+		}
+
+		input[type="button"]:hover {
+			background: #26305a;
+		}
+
+		input[type="button"]:active {
+			transform: translateY(1px);
+		}
+
+		#resetbtn {
+			background: var(--accent);
+			border-color: transparent;
+			color: #0b1020;
+		}
+
+		#resetbtn:hover {
+			background: var(--accent-hover);
 		}
 	</style>
 </head>
 
 <body>
 	<div id="navbar">
-		<label>Size <input type="number" min="5" max="40" step="5" value="20" id="sizetxt"></label> &nbsp;
+		<div class="brand">Maze<span>Generator</span></div>
+		<label>Size <input type="number" min="5" max="40" step="5" value="20" id="sizetxt"></label>
 		<label>Algorithm
 			<select id="algotxt">
 				<option value="0">Breadth-first search transversal</option>
@@ -45,16 +161,18 @@
 				<option value="2" selected="selected">Prim's</option>
 				<option value="3">Kruskal's</option>
 			</select>
-		</label> &nbsp;
-		<label><input type="checkbox" id="randomtxt" checked> Random</label> &nbsp;
+		</label>
+		<label><input type="checkbox" id="randomtxt" checked> Random</label>
 		<label>Speed <small>slow</small> <input type="range" min="1" max="100" step="1" value="50" list="tickmarks" id="speedtxt"> <small>fast</small>
 			<datalist id="tickmarks">
 				<option value="1">
 				<option value="100">
 			</datalist>
-		</label> &nbsp;
-		<input type="button" value="Reset" id="resetbtn"> &nbsp;
-		<input type="button" value="Pause" id="pausebtn">
+		</label>
+		<div class="actions">
+			<input type="button" value="Reset" id="resetbtn">
+			<input type="button" value="Pause" id="pausebtn">
+		</div>
 	</div>
 	<canvas id="canvas" width="500" height="400"></canvas>
 	<!-- <script type="text/javascript" src="build/maze-min.js"></script> -->

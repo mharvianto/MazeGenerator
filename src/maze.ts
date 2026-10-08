@@ -99,6 +99,15 @@ interface QueueInterface<T> {
 		};
 	}
 
+	// Canvas palette, matched to the CSS theme in index.html.
+	const COLORS = {
+		path: '#e6e9f2',
+		frontier: '#ff6b81',
+		loop: '#ffb86b',
+		player: '#6c8cff',
+		route: '#4ade80'
+	};
+
 	const $ = (selector: string): HTMLElement | null => document.querySelector(selector);
 	const c = $('canvas') as HTMLCanvasElement;
 	const ctx = c.getContext('2d')!;
@@ -185,7 +194,7 @@ interface QueueInterface<T> {
 		const draw = function (node: Node, options?: DrawOptions): void {
 			options = options || {};
 			options.width = options.width || size;
-			ctx.fillStyle = options.color || 'white';
+			ctx.fillStyle = options.color || COLORS.path;
 			ctx.fillRect(
 				size * node.x + (size - options.width) / 2,
 				size * node.y + (size - options.width) / 2,
@@ -249,22 +258,22 @@ interface QueueInterface<T> {
 			ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 			const pqData = kruskal ? [] : (pq.get() as WeightedNode[]);
 			pqData.forEach(({ x, y, fx, fy }) => {
-				draw({ x: x, y: y } as Node, { color: 'red' });
+				draw({ x: x, y: y } as Node, { color: COLORS.frontier });
 				if (fx !== undefined && fy !== undefined) {
-					draw({ x: fx, y: fy } as Node, { color: 'red' });
+					draw({ x: fx, y: fy } as Node, { color: COLORS.frontier });
 				}
 			});
 			for (let i = width - 1; i >= 0; i--) {
 				for (let j = height - 1; j >= 0; j--) {
-					if (map[i][j]) draw({ x: i, y: j } as Node, { color: 'white' });
+					if (map[i][j]) draw({ x: i, y: j } as Node, { color: COLORS.path });
 				}
 			}
 			cycle && cycle.forEach(({ fx, fy }) => {
 				if (fx !== undefined && fy !== undefined) {
-					draw({ x: fx, y: fy } as Node, { color: 'orange' });
+					draw({ x: fx, y: fy } as Node, { color: COLORS.loop });
 				}
 			});
-			node && draw(node, { color: 'blue', width: size - Math.floor(size / 5) });
+			node && draw(node, { color: COLORS.player, width: size - Math.floor(size / 5) });
 		};
 
 		const memset = function (n: number, m: number, v?: number): number[][] {
@@ -378,7 +387,7 @@ interface QueueInterface<T> {
 			const b = opt.path || pathMove(node);
 			let a: Node | undefined;
 			ctx.lineWidth = opt.width || Math.ceil(size / 5);
-			ctx.strokeStyle = opt.color || 'red';
+			ctx.strokeStyle = opt.color || COLORS.frontier;
 			ctx.beginPath();
 			while ((a = b.pop())) ctx.lineTo(a.x * size + c, a.y * size + c);
 			ctx.stroke();
@@ -398,7 +407,7 @@ interface QueueInterface<T> {
 				drawMaze({ x, y } as Node);
 				if (isBorder(pos) && !(pos.x === x && pos.y === y) && map[pos.x][pos.y]) {
 					drawPath(pos);
-					draw(pos, { color: 'red', width: size - Math.floor(size / 5) });
+					draw(pos, { color: COLORS.frontier, width: size - Math.floor(size / 5) });
 					currMouse = pos;
 				} else currMouse = undefined;
 				oldPos = pos;
@@ -422,10 +431,10 @@ interface QueueInterface<T> {
 				drawMaze({ x, y } as Node);
 				const a = moves.slice();
 				a.push({ x, y } as Node);
-				drawPath(currMouse!, { path: a, color: 'green', width: Math.ceil(size / 5) + 2 });
+				drawPath(currMouse!, { path: a, color: COLORS.route, width: Math.ceil(size / 5) + 2 });
 				if (currMouse && !(currMouse.x === x && currMouse.y === y)) {
 					drawPath(currMouse);
-					draw(currMouse, { color: 'red', width: size - Math.floor(size / 5) });
+					draw(currMouse, { color: COLORS.frontier, width: size - Math.floor(size / 5) });
 				}
 			} else obj.stop();
 		};
@@ -459,7 +468,7 @@ interface QueueInterface<T> {
 
 		obj.start = function (): MazeObject {
 			c.width = window.innerWidth;
-			c.height = window.innerHeight - 40;
+			c.height = window.innerHeight - ($('#navbar') as HTMLElement).offsetHeight;
 			size = parseInt(si.value);
 			width = Math.floor(c.width / size);
 			height = Math.floor(c.height / size);

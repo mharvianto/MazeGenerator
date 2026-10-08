@@ -74,6 +74,13 @@
 			color: var(--muted);
 		}
 
+		#navbar .ramp {
+			width: 40px;
+			height: 8px;
+			border-radius: 4px;
+			background: linear-gradient(90deg, hsl(190, 75%, 45%), hsl(122, 75%, 58%), hsl(55, 75%, 70%));
+		}
+
 		#navbar .actions {
 			display: inline-flex;
 			gap: 8px;
@@ -164,6 +171,7 @@
 		</label>
 		<label><input type="checkbox" id="randomtxt" checked> Random</label>
 		<label><input type="checkbox" id="bridgetxt" checked> Bridge</label>
+		<label title="Color open cells by when they were carved: teal first, yellow last"><input type="checkbox" id="ordertxt"> Color order <span class="ramp"></span></label>
 		<label>Speed <small>slow</small> <input type="range" min="1" max="100" step="1" value="50" list="tickmarks" id="speedtxt"> <small>fast</small>
 			<datalist id="tickmarks">
 				<option value="1">

@@ -122,6 +122,7 @@ interface QueueInterface<T> {
 	const pb = $('#pausebtn') as HTMLButtonElement;
 	const rd = $('#randomtxt') as HTMLInputElement;
 	const br = $('#bridgetxt') as HTMLInputElement;
+	const co = $('#ordertxt') as HTMLInputElement;
 
 	// Slider 1..100 maps exponentially to 2..2000 steps per second. Timers can't
 	// fire much faster than ~60/s reliably, so higher rates run several steps per tick.
@@ -157,6 +158,7 @@ interface QueueInterface<T> {
 		renderView: () => void;
 		start: () => MazeObject;
 		stop: () => MazeObject;
+		redraw: () => void;
 	}
 
 	const Maze = function (): MazeObject {
@@ -173,7 +175,8 @@ interface QueueInterface<T> {
 			floodFillStep: () => { },
 			renderView: () => { },
 			start: () => obj,
-			stop: () => obj
+			stop: () => obj,
+			redraw: () => { }
 		};
 		let visited: number[][];
 		let qq: Node[];
@@ -185,6 +188,8 @@ interface QueueInterface<T> {
 		let kruskal: boolean;
 		let random: boolean;
 		let bridge: boolean;
+		let order: number[][];
+		let carved: number;
 		let seq: number;
 		let parent: number[];
 		const opt: PriorityQueueOptions = { compare: (a: WeightedNode, b: WeightedNode) => a.w < b.w };
@@ -208,7 +213,8 @@ interface QueueInterface<T> {
 		const addMaze = function (node: Node): void {
 			const n = { x: node.x, y: node.y, fx: node.fx || node.x, fy: node.fy || node.y } as Node;
 			if (!map[n.x][n.y]) {
-				map[n.x][n.y] = map[n.fx!][n.fy!] = 1;
+				carve(n.fx!, n.fy!);
+				carve(n.x, n.y);
 				const moves: WeightedNode[] = [];
 				let temp: WeightedNode | undefined;
 				if (n.x - 2 > 0) moves.push({ w: rand(), x: n.x - 2, y: n.y, fx: n.x - 1, fy: n.y } as WeightedNode);
@@ -252,8 +258,25 @@ interface QueueInterface<T> {
 			const b = find(ox * height + oy);
 			if (a === b) return false;
 			parent[a] = b;
-			map[node.x][node.y] = map[ox][oy] = map[node.fx!][node.fy!] = 1;
+			carve(node.x, node.y);
+			carve(node.fx!, node.fy!);
+			carve(ox, oy);
 			return true;
+		};
+
+		// Open a grid square and remember when it was opened, for the Color order view.
+		const carve = function (cx: number, cy: number): void {
+			if (map[cx][cy]) return;
+			map[cx][cy] = 1;
+			order[cx][cy] = ++carved;
+		};
+
+		// Gradient from teal (opened first) to yellow (opened last). A spanning tree
+		// over all cells always opens 2 * cells - 1 squares, so colors stay stable mid-run.
+		const orderColor = function (n: number): string {
+			const total = Math.floor((width - 1) / 2) * Math.floor((height - 1) / 2) * 2 - 1;
+			const t = Math.min(1, (n - 1) / Math.max(1, total - 1));
+			return `hsl(${190 - 135 * t}, 75%, ${45 + 25 * t}%)`;
 		};
 
 		const drawMaze = function (node?: Node): void {
@@ -267,7 +290,7 @@ interface QueueInterface<T> {
 			});
 			for (let i = width - 1; i >= 0; i--) {
 				for (let j = height - 1; j >= 0; j--) {
-					if (map[i][j]) draw({ x: i, y: j } as Node, { color: COLORS.path });
+					if (map[i][j]) draw({ x: i, y: j } as Node, { color: co.checked ? orderColor(order[i][j]) : COLORS.path });
 				}
 			}
 			cycle && cycle.forEach(({ fx, fy }) => {
@@ -321,7 +344,7 @@ interface QueueInterface<T> {
 							hole.y < height - 1 &&
 							!map[hole.fx!][hole.fy!]
 						) {
-							map[hole.fx!][hole.fy!] = 1;
+							carve(hole.fx!, hole.fy!);
 							cycle.push({ x: t.x, y: t.y, fx: hole.fx, fy: hole.fy } as WeightedNode);
 							break;
 						}
@@ -491,6 +514,8 @@ interface QueueInterface<T> {
 			x = Math.floor(Math.random() * ((width - 2) / 2)) * 2 + 1;
 			y = Math.floor(Math.random() * ((height - 2) / 2)) * 2 + 1;
 			map = memset(width, height);
+			order = memset(width, height);
+			carved = 0;
 			cycle = [];
 			obj.st = 0;
 			c.removeEventListener('mousemove', mouseMove);
@@ -503,6 +528,14 @@ interface QueueInterface<T> {
 			else addMaze({ x: x, y: y } as Node);
 			run(obj.renderView);
 			return obj;
+		};
+
+		obj.redraw = function (): void {
+			drawMaze({ x, y } as Node);
+			if (obj.st === 2 && currMouse) {
+				drawPath(currMouse);
+				draw(currMouse, { color: COLORS.frontier, width: size - Math.floor(size / 5) });
+			}
 		};
 
 		obj.stop = (): MazeObject => {
@@ -531,6 +564,10 @@ interface QueueInterface<T> {
 	pb.addEventListener('click', function () {
 		pause = !pause;
 		pb.value = pb.value === 'Pause' ? 'Play' : 'Pause';
+	});
+
+	co.addEventListener('change', function () {
+		mazeInstance.redraw();
 	});
 
 	sp.addEventListener('input', function () {

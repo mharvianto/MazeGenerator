@@ -154,6 +154,8 @@ interface QueueInterface<T> {
 		let oldPos: Node | undefined;
 		let moves: Node[];
 		let currMouse: Node | undefined;
+		let kruskal: boolean;
+		let parent: number[];
 		const opt: PriorityQueueOptions = { compare: (a: WeightedNode, b: WeightedNode) => a.w < b.w };
 		const rand = (): number => Math.floor(Math.random() * 10);
 		const isBorder = (n: Node): boolean => n.x > 0 && n.y > 0 && n.x < width - 1 && n.y < height - 1;
@@ -192,9 +194,38 @@ interface QueueInterface<T> {
 			}
 		};
 
+		const find = function (i: number): number {
+			while (parent[i] !== i) i = parent[i] = parent[parent[i]];
+			return i;
+		};
+
+		// Kruskal's: every wall between two cells is an edge with a random weight;
+		// pq holds all of them, and union-find rejects walls that would form a loop.
+		const initKruskal = function (): void {
+			parent = [];
+			for (let i = 1; i < width - 1; i += 2) {
+				for (let j = 1; j < height - 1; j += 2) {
+					parent[i * height + j] = i * height + j;
+					if (i + 2 < width - 1) pq.push({ w: Math.random(), x: i + 2, y: j, fx: i + 1, fy: j } as WeightedNode);
+					if (j + 2 < height - 1) pq.push({ w: Math.random(), x: i, y: j + 2, fx: i, fy: j + 1 } as WeightedNode);
+				}
+			}
+		};
+
+		const joinKruskal = function (node: Node): boolean {
+			const ox = 2 * node.fx! - node.x;
+			const oy = 2 * node.fy! - node.y;
+			const a = find(node.x * height + node.y);
+			const b = find(ox * height + oy);
+			if (a === b) return false;
+			parent[a] = b;
+			map[node.x][node.y] = map[ox][oy] = map[node.fx!][node.fy!] = 1;
+			return true;
+		};
+
 		const drawMaze = function (node?: Node): void {
 			ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-			const pqData = pq.get() as WeightedNode[];
+			const pqData = kruskal ? [] : (pq.get() as WeightedNode[]);
 			pqData.forEach(({ x, y, fx, fy }) => {
 				draw({ x: x, y: y } as Node, { color: 'red' });
 				if (fx !== undefined && fy !== undefined) {
@@ -394,8 +425,9 @@ interface QueueInterface<T> {
 		obj.renderView = function (): void {
 			let node: WeightedNode | undefined;
 			if (pause) return;
-			if (pq && (node = pq.pop())) {
-				addMaze(node);
+			if (kruskal) while ((node = pq.pop()) && !joinKruskal(node));
+			else if ((node = pq.pop())) addMaze(node);
+			if (node) {
 				drawMaze(node);
 			} else {
 				obj.stop();
@@ -426,7 +458,9 @@ interface QueueInterface<T> {
 			obj.st = 0;
 			c.removeEventListener('mousemove', mouseMove);
 			c.removeEventListener('mousedown', mouseClick);
-			addMaze({ x: x, y: y } as Node);
+			kruskal = al.value === '3';
+			if (kruskal) initKruskal();
+			else addMaze({ x: x, y: y } as Node);
 			interval = window.setInterval(obj.renderView, speed);
 			return obj;
 		};

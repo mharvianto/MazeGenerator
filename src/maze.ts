@@ -53,6 +53,7 @@ class App {
 	constructor() {
 		canvas.addEventListener('mousemove', this.onMouseMove);
 		canvas.addEventListener('mousedown', this.onMouseDown);
+		canvas.addEventListener('mouseleave', this.onMouseLeave);
 	}
 
 	reset(): void {
@@ -163,15 +164,27 @@ class App {
 		const pos = this.mousePosition(e);
 		if (samePoint(pos, this.lastMouse)) return;
 		this.lastMouse = pos;
-		this.hover = this.isTarget(pos) ? pos : undefined;
+		// Over a wall, keep the last target so the path doesn't blink while the cursor crosses walls.
+		if (this.isTarget(pos)) this.hover = pos;
+		else if (samePoint(pos, this.player)) this.hover = undefined;
+		else return;
+		this.drawPlay();
+	};
+
+	private onMouseLeave = (): void => {
+		this.lastMouse = undefined;
+		if (this.phase !== 'play' || !this.hover) return;
+		this.hover = undefined;
 		this.drawPlay();
 	};
 
 	private onMouseDown = (e: MouseEvent): void => {
 		if (this.phase !== 'play') return;
+		// Clicking a wall walks to the target that is still shown.
 		const pos = this.mousePosition(e);
-		if (!this.isTarget(pos)) return;
-		this.route = routeTo(this.grid, this.dist, pos);
+		const target = this.isTarget(pos) ? pos : this.hover;
+		if (!target || samePoint(target, this.player)) return;
+		this.route = routeTo(this.grid, this.dist, target);
 		this.ticker.start(this.moveStep);
 	};
 }

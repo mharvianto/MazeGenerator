@@ -28,8 +28,8 @@ Try it online: **https://mharvianto.github.io/MazeGenerator/**
 1. **Maze generation.** The maze is built step by step from a random starting point.
 2. **Bridge creation** (when Bridge is above 0%). The program walks the whole maze and knocks out a wall at some of the dead ends.
 3. **Interactive mode.** Once the maze is done:
-   - **Hover** over a cell. The shortest path from the player (blue square) to that cell is drawn as a red line.
-   - **Click** the cell. The player moves along that path, and the remaining route is shown in green.
+   - **Hover** over a cell. The shortest path from the player (blue square) to that cell is drawn as a red line. When the cursor crosses a wall, the last target stays shown, and the path disappears once the cursor leaves the maze.
+   - **Click**. The player moves along the path to the shown target, and the remaining route is shown in green.
 
 ### Colors
 

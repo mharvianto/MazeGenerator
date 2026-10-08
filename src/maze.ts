@@ -111,6 +111,7 @@ interface QueueInterface<T> {
 	const sp = $('#speedtxt') as HTMLInputElement;
 	const rb = $('#resetbtn') as HTMLButtonElement;
 	const pb = $('#pausebtn') as HTMLButtonElement;
+	const rd = $('#randomtxt') as HTMLInputElement;
 
 	// Slider 1..100 maps exponentially to 2..2000 steps per second. Timers can't
 	// fire much faster than ~60/s reliably, so higher rates run several steps per tick.
@@ -172,9 +173,13 @@ interface QueueInterface<T> {
 		let moves: Node[];
 		let currMouse: Node | undefined;
 		let kruskal: boolean;
+		let random: boolean;
+		let seq: number;
 		let parent: number[];
 		const opt: PriorityQueueOptions = { compare: (a: WeightedNode, b: WeightedNode) => a.w < b.w };
-		const rand = (): number => Math.floor(Math.random() * 10);
+		// With Random off, weights are an increasing counter, so neighbors and walls
+		// are always taken in the same fixed order.
+		const rand = (): number => (random ? Math.random() : seq++);
 		const isBorder = (n: Node): boolean => n.x > 0 && n.y > 0 && n.x < width - 1 && n.y < height - 1;
 
 		const draw = function (node: Node, options?: DrawOptions): void {
@@ -223,8 +228,8 @@ interface QueueInterface<T> {
 			for (let i = 1; i < width - 1; i += 2) {
 				for (let j = 1; j < height - 1; j += 2) {
 					parent[i * height + j] = i * height + j;
-					if (i + 2 < width - 1) pq.push({ w: Math.random(), x: i + 2, y: j, fx: i + 1, fy: j } as WeightedNode);
-					if (j + 2 < height - 1) pq.push({ w: Math.random(), x: i, y: j + 2, fx: i, fy: j + 1 } as WeightedNode);
+					if (i + 2 < width - 1) pq.push({ w: rand(), x: i + 2, y: j, fx: i + 1, fy: j } as WeightedNode);
+					if (j + 2 < height - 1) pq.push({ w: rand(), x: i, y: j + 2, fx: i, fy: j + 1 } as WeightedNode);
 				}
 			}
 		};
@@ -474,6 +479,8 @@ interface QueueInterface<T> {
 			obj.st = 0;
 			c.removeEventListener('mousemove', mouseMove);
 			c.removeEventListener('mousedown', mouseClick);
+			random = rd.checked;
+			seq = 0;
 			kruskal = al.value === '3';
 			if (kruskal) initKruskal();
 			else addMaze({ x: x, y: y } as Node);

@@ -78,7 +78,7 @@
 			width: 40px;
 			height: 8px;
 			border-radius: 4px;
-			background: linear-gradient(90deg, hsl(190, 75%, 45%), hsl(122, 75%, 58%), hsl(55, 75%, 70%));
+			background: linear-gradient(90deg, hsl(55, 100%, 70%), hsl(3, 100%, 63%), hsl(310, 100%, 55%));
 		}
 
 		#navbar .actions {
@@ -171,7 +171,7 @@
 		</label>
 		<label><input type="checkbox" id="randomtxt" checked> Random</label>
 		<label><input type="checkbox" id="bridgetxt" checked> Bridge</label>
-		<label title="Color open cells by when they were carved: teal first, yellow last"><input type="checkbox" id="ordertxt"> Color order <span class="ramp"></span></label>
+		<label title="Color the frontier (queue / stack / priority queue) by pop order: yellow is taken next, magenta last"><input type="checkbox" id="ordertxt"> Color priority <span class="ramp"></span></label>
 		<label>Speed <small>slow</small> <input type="range" min="1" max="100" step="1" value="50" list="tickmarks" id="speedtxt"> <small>fast</small>
 			<datalist id="tickmarks">
 				<option value="1">

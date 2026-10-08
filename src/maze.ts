@@ -22,6 +22,7 @@ interface QueueInterface<T> {
 	empty: () => boolean;
 	push: (...items: T[]) => number | void;
 	pop: () => T | undefined;
+	ordered: () => T[];
 }
 
 (function () {
@@ -51,6 +52,7 @@ interface QueueInterface<T> {
 				return data.length;
 			},
 			empty: () => !data.length,
+			ordered: () => data.slice().sort((a, b) => (compare(a, b) ? -1 : compare(b, a) ? 1 : 0)),
 			pop: function (): T | undefined {
 				if (!this.empty()) {
 					let a = 0;
@@ -85,7 +87,8 @@ interface QueueInterface<T> {
 			get: (a?: number) => (a !== undefined ? data[a] : data),
 			empty: () => !data.length,
 			push: (a: T) => data.push(a),
-			pop: () => data.shift()
+			pop: () => data.shift(),
+			ordered: () => data.slice()
 		};
 	}
 
@@ -95,7 +98,8 @@ interface QueueInterface<T> {
 			get: (a?: number) => (a !== undefined ? data[a] : data),
 			empty: () => !data.length,
 			push: (a: T) => data.push(a),
-			pop: () => data.pop()
+			pop: () => data.pop(),
+			ordered: () => data.slice().reverse()
 		};
 	}
 
@@ -188,8 +192,6 @@ interface QueueInterface<T> {
 		let kruskal: boolean;
 		let random: boolean;
 		let bridge: boolean;
-		let order: number[][];
-		let carved: number;
 		let seq: number;
 		let parent: number[];
 		const opt: PriorityQueueOptions = { compare: (a: WeightedNode, b: WeightedNode) => a.w < b.w };
@@ -213,8 +215,7 @@ interface QueueInterface<T> {
 		const addMaze = function (node: Node): void {
 			const n = { x: node.x, y: node.y, fx: node.fx || node.x, fy: node.fy || node.y } as Node;
 			if (!map[n.x][n.y]) {
-				carve(n.fx!, n.fy!);
-				carve(n.x, n.y);
+				map[n.x][n.y] = map[n.fx!][n.fy!] = 1;
 				const moves: WeightedNode[] = [];
 				let temp: WeightedNode | undefined;
 				if (n.x - 2 > 0) moves.push({ w: rand(), x: n.x - 2, y: n.y, fx: n.x - 1, fy: n.y } as WeightedNode);
@@ -258,39 +259,29 @@ interface QueueInterface<T> {
 			const b = find(ox * height + oy);
 			if (a === b) return false;
 			parent[a] = b;
-			carve(node.x, node.y);
-			carve(node.fx!, node.fy!);
-			carve(ox, oy);
+			map[node.x][node.y] = map[ox][oy] = map[node.fx!][node.fy!] = 1;
 			return true;
 		};
 
-		// Open a grid square and remember when it was opened, for the Color order view.
-		const carve = function (cx: number, cy: number): void {
-			if (map[cx][cy]) return;
-			map[cx][cy] = 1;
-			order[cx][cy] = ++carved;
-		};
-
-		// Gradient from teal (opened first) to yellow (opened last). A spanning tree
-		// over all cells always opens 2 * cells - 1 squares, so colors stay stable mid-run.
-		const orderColor = function (n: number): string {
-			const total = Math.floor((width - 1) / 2) * Math.floor((height - 1) / 2) * 2 - 1;
-			const t = Math.min(1, (n - 1) / Math.max(1, total - 1));
-			return `hsl(${190 - 135 * t}, 75%, ${45 + 25 * t}%)`;
+		// Gradient over the frontier's pop order: yellow is popped next, magenta last.
+		const rankColor = function (rank: number, count: number): string {
+			const t = count > 1 ? rank / (count - 1) : 0;
+			return `hsl(${55 - 105 * t}, 100%, ${70 - 15 * t}%)`;
 		};
 
 		const drawMaze = function (node?: Node): void {
 			ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-			const pqData = kruskal ? [] : (pq.get() as WeightedNode[]);
-			pqData.forEach(({ x, y, fx, fy }) => {
-				draw({ x: x, y: y } as Node, { color: COLORS.frontier });
+			const pqData = kruskal ? [] : co.checked ? pq.ordered() : (pq.get() as WeightedNode[]);
+			pqData.forEach(({ x, y, fx, fy }, i) => {
+				const color = co.checked ? rankColor(i, pqData.length) : COLORS.frontier;
+				draw({ x: x, y: y } as Node, { color });
 				if (fx !== undefined && fy !== undefined) {
-					draw({ x: fx, y: fy } as Node, { color: COLORS.frontier });
+					draw({ x: fx, y: fy } as Node, { color });
 				}
 			});
 			for (let i = width - 1; i >= 0; i--) {
 				for (let j = height - 1; j >= 0; j--) {
-					if (map[i][j]) draw({ x: i, y: j } as Node, { color: co.checked ? orderColor(order[i][j]) : COLORS.path });
+					if (map[i][j]) draw({ x: i, y: j } as Node, { color: COLORS.path });
 				}
 			}
 			cycle && cycle.forEach(({ fx, fy }) => {
@@ -344,7 +335,7 @@ interface QueueInterface<T> {
 							hole.y < height - 1 &&
 							!map[hole.fx!][hole.fy!]
 						) {
-							carve(hole.fx!, hole.fy!);
+							map[hole.fx!][hole.fy!] = 1;
 							cycle.push({ x: t.x, y: t.y, fx: hole.fx, fy: hole.fy } as WeightedNode);
 							break;
 						}
@@ -514,8 +505,6 @@ interface QueueInterface<T> {
 			x = Math.floor(Math.random() * ((width - 2) / 2)) * 2 + 1;
 			y = Math.floor(Math.random() * ((height - 2) / 2)) * 2 + 1;
 			map = memset(width, height);
-			order = memset(width, height);
-			carved = 0;
 			cycle = [];
 			obj.st = 0;
 			c.removeEventListener('mousemove', mouseMove);

@@ -16,7 +16,7 @@ Try it online: **https://mharvianto.github.io/MazeGenerator/**
 | **Algorithm** | The maze generation algorithm: BFS, DFS, Prim's or Kruskal's. See the explanations [below](#maze-generation-algorithms). |
 | **Random** | When on, the generation order is random. When off, the order is fixed and the pattern is regular. |
 | **Bridge** | When on, some dead ends are knocked through so the maze has loops (orange cells). When off, the maze is "perfect": there is exactly one path between any two points. |
-| **Color order** | Colors open passages by when they were carved: teal first, through green, to yellow last. Shows each algorithm's priority order. Takes effect immediately, without Reset. |
+| **Color priority** | Colors the frontier (the queue, stack or priority queue) by the order its cells will be taken: yellow is taken next, through red, to magenta last. Takes effect immediately, without Reset. |
 | **Speed** | Animation speed. Slide right to go faster (about 2 to 2000 steps per second). Takes effect while you slide. |
 | **Reset** | Generates a new maze with the current settings. |
 | **Pause / Play** | Pauses or resumes the animation. |
@@ -35,8 +35,8 @@ Try it online: **https://mharvianto.github.io/MazeGenerator/**
 
 | Color | Meaning |
 | --- | --- |
-| White | Open passage (with **Color order** on: teal → yellow, by carving order) |
-| Pink (square) | *Frontier*: cells waiting to be processed (not shown for Kruskal's) |
+| White | Open passage |
+| Pink (square) | *Frontier*: cells waiting to be processed (not shown for Kruskal's). With **Color priority** on: yellow → magenta by pop order |
 | Blue | The cell being processed, or the player's position in interactive mode |
 | Orange | *Bridge*: an extra wall knocked out to create a loop |
 | Red (line) | Shortest path to the mouse position |
@@ -95,7 +95,7 @@ Kruskal's doesn't grow the maze from a single point.
 
 - **Result:** many small maze fragments appear all over the screen at once, then gradually merge into one. The texture is similar to Prim's: lots of short branches.
 
-> **Tip:** turn on **Color order** to compare algorithms. BFS shows even rings around the start, DFS shows one long gradient along its corridor, Prim's shows blotches spreading from the start, and Kruskal's mixes colors everywhere.
+> **Tip:** turn on **Color priority** to see how each data structure picks the next cell. In BFS the oldest cells (yellow) are taken first, so the color sweeps around the growing edge. In DFS the newest cell, right at the head of the corridor, is yellow, and older cells left behind turn magenta. In Prim's the colors look scattered, because priority comes from random weights rather than position. Turn **Random** off to make Prim's behave like BFS. Kruskal's frontier (every wall) isn't drawn.
 
 ### Summary
 

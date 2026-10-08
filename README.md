@@ -16,6 +16,6 @@ Project ini sudah disiapkan untuk deploy otomatis ke GitHub Pages.
 2. Tunggu workflow `Deploy to GitHub Pages` selesai.
 3. Buka URL:
 
-`https://mharvianto.github.io/MazeGenerator/`
+[Web](https://mharvianto.github.io/MazeGenerator/)
 
 Pengguna cukup buka link tersebut di browser, tanpa install aplikasi apa pun.
